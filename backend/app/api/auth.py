@@ -69,7 +69,7 @@ async def google_callback(request: Request, db: Session = Depends(get_db)):
             data={"sub": updated_user.email}, expires_delta=access_token_expires
         )
         return RedirectResponse(
-            url=f"{settings.FRONTEND_URL}/dashboard?token={jwt_token}",
+            url=f"{settings.FRONTEND_URL}/login?token={jwt_token}",
             status_code=status.HTTP_302_FOUND
         )
     except Exception as e:
