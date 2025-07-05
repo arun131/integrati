@@ -2,7 +2,7 @@ from datetime import datetime, timedelta
 from typing import Optional
 from jose import JWTError, jwt
 from passlib.context import CryptContext
-from backend.app.core.config import settings
+from app.core.config import settings
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -24,7 +24,7 @@ def verify_token(token: str, credentials_exception):
         email: str = payload.get("sub")
         if email is None:
             raise credentials_exception
-        from backend.app.models.user import TokenData
+        from app.models.user import TokenData
         token_data = TokenData(email=email)
     except JWTError:
         raise credentials_exception

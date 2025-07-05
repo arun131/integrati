@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from backend.app.models.user import User, UserCreate
+from app.models.user import User, UserCreate
 from datetime import datetime
 
 def get_user_by_google_id(db: Session, google_id: str):

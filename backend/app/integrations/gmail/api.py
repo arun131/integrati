@@ -1,9 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
-from backend.app.database.connection import get_db
-from backend.app.core.dependencies import get_current_user
-from backend.app.models.user import UserInDB
-from backend.app.services.google_auth_gmail import get_google_credentials, get_gmail_service, search_gmail_messages, get_last_received_email, send_gmail_message
+from app.database.connection import get_db
+from app.core.dependencies import get_current_user
+from app.models.user import UserInDB
+from .google_auth import get_google_credentials, get_gmail_service, search_gmail_messages, get_last_received_email, send_gmail_message
 from pydantic import BaseModel
 from typing import List, Optional
 

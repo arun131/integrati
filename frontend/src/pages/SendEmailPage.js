@@ -32,7 +32,7 @@ function SendEmailPage() {
                 message_text: messageText,
                 thread_id: threadId
             };
-            await api.post('/gmail/send', payload);
+            await api.post('/integrations/gmail/api/send', payload);
             setSuccess(true);
             setMessageText('');
             if (!replyToId) {

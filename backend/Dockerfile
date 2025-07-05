@@ -11,13 +11,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && rm -rf /var/lib/apt/lists/*
 
 # Copy the requirements file first to leverage Docker cache
-COPY ./backend/requirements.txt /app/requirements.txt
+COPY requirements.txt /app/requirements.txt
 
 # Install any needed packages specified in requirements.txt
 RUN pip install --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
-COPY ./backend/app /app/app
+COPY app /app/app
 
 # Set environment variables for FastAPI (optional but good practice)
 ENV PYTHONPATH=/app

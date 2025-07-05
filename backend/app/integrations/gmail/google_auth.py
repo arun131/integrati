@@ -8,8 +8,9 @@ from typing import Optional
 import base64
 from email.mime.text import MIMEText
 
-from backend.app.core.config import settings
-from backend.app.crud.user import update_user_tokens
+from app.core.config import settings
+from app.crud.user import update_user_tokens
+from .config import GMAIL_REDIRECT_URI
 
 SCOPES = [
     'openid',
@@ -26,7 +27,7 @@ def get_google_auth_flow():
     flow = Flow.from_client_secrets_file(
         CLIENT_SECRETS_FILE,
         scopes=SCOPES,
-        redirect_uri=settings.GOOGLE_REDIRECT_URI
+        redirect_uri=GMAIL_REDIRECT_URI
     )
     return flow
 
@@ -45,7 +46,7 @@ def get_google_credentials(token_data: dict, db_user_id: int, db):
         if creds and creds.expired and creds.refresh_token:
             try:
                 creds.refresh(Request())
-                from backend.app.crud.user import get_user_by_google_id
+                from app.crud.user import get_user_by_google_id
                 db_user = get_user_by_google_id(db, token_data['google_id'])
                 if db_user:
                     update_user_tokens(db, db_user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
