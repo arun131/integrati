@@ -194,6 +194,36 @@ cython_debug/
 # PyPI configuration file
 .pypirc
 
+# ----------------------------
+# Node / React frontend ignores
+# ----------------------------
+node_modules/
+frontend/node_modules/
+# CRA / Vite / Next build outputs
+frontend/build/
+frontend/dist/
+frontend/.next/
+
+# Frontend environment files
+frontend/.env
+frontend/.env.*
+
+# Logs
+*.log
+npm-debug.log*
+
+# Google credentials / secrets
+backend/app/credentials.json
+*.key.json
+
+# Docker artefacts
+**/tmp/
+.docker/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
 # Cursor
 #  Cursor is an AI-powered code editor. `.cursorignore` specifies files/directories to
 #  exclude from AI features like autocomplete and code analysis. Recommended for sensitive data
@@ -208,3 +238,5 @@ __marimo__/
 
 # Google OAuth credentials
 backend/app/credentials.json
+
+backend/firebase-service-account.json
