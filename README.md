@@ -1,53 +1,77 @@
-# Integrati - Integration Management Platform
+# Integrati - Email & Calendar Manager
 
-A modern web application that allows users to connect and manage multiple service integrations like Gmail and Google Calendar through a unified interface.
+A simple Docker-based application to manage Gmail and Google Calendar integrations.
 
-## Features
+## 🚀 Quick Start
 
-- **Firebase Authentication**: Sign in with email/password, Google, or GitHub
-- **Integration Management**: Add and manage multiple service integrations
-- **Gmail Integration**: Search emails, send emails, reply to emails
-- **Google Calendar Integration**: View events, create events, manage calendar
-- **Modern UI**: Clean, responsive design with intuitive navigation
+1. **Clone the repository**
+   ```bash
+   git clone https://github.com/yourusername/integrati.git
+   cd integrati
+   ```
 
-## Tech Stack
+2. **Set up Firebase**
+   - Go to [Firebase Console](https://console.firebase.google.com/)
+   - Create a new project
+   - Enable Authentication (Email/Password & Google)
+   - Enable Firestore Database
+   - In Project Settings > General > Your apps, get your Firebase config
 
-- **Frontend**: React.js with Firebase Authentication
-- **Backend**: Python (FastAPI)
-- **Database**: Firebase Firestore
-- **Containerization**: Docker & Docker Compose
+3. **Set up Google OAuth**
+   - Go to [Google Cloud Console](https://console.cloud.google.com/)
+   - Create OAuth 2.0 credentials (Web application)
+   - Add authorized redirect URIs:
+     - `http://localhost:8000/integrations/gmail/auth/callback`
+     - `http://localhost:8000/integrations/calendar/auth/callback`
+   - Download credentials as `backend/app/credentials.json`
 
-## Prerequisites
-
-- Docker and Docker Compose installed
-- Firebase project with Authentication and Firestore enabled
-- Google Cloud Console project for OAuth credentials
-
-## Setup Instructions
-
-### 1. Firebase Setup
-
-1. Create a new Firebase project at [Firebase Console](https://console.firebase.google.com/)
-2. Enable Authentication with Email/Password, Google, and GitHub providers
-3. Enable Firestore Database
-4. Get your Firebase configuration from Project Settings > General > Your apps
-
-### 2. Environment Configuration
-
-1. Copy the example environment file:
+4. **Configure Environment**
    ```bash
    cp env.example .env
    ```
-
-2. Update `.env` with your actual credentials:
-   ```bash
-   # Firebase Configuration
-   REACT_APP_FIREBASE_API_KEY=your-actual-firebase-api-key
+   Edit `.env` with your Firebase config:
+   ```
+   # Firebase
+   REACT_APP_FIREBASE_API_KEY=your-api-key
    REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
    REACT_APP_FIREBASE_PROJECT_ID=your-project-id
-   REACT_APP_FIREBASE_STORAGE_BUCKET=your-project.appspot.com
-   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=123456789
+   REACT_APP_FIREBASE_STORAGE_BUCKET=your-bucket.appspot.com
+   REACT_APP_FIREBASE_MESSAGING_SENDER_ID=123456
    REACT_APP_FIREBASE_APP_ID=your-app-id
+   
+   # Backend
+   BACKEND_URL=http://localhost:8000
+   ```
+
+5. **Run with Docker**
+   ```bash
+   docker compose up --build
+   ```
+   The app will be available at http://localhost:3000
+
+## 🔧 Features
+
+- **Gmail Integration**
+  - Search emails
+  - Send and reply to emails
+  - View email threads
+
+- **Google Calendar**
+  - View upcoming events
+  - Create new events
+  - Manage event attendees
+
+## 🔒 Security
+
+- All credentials are stored in `.env` (not committed to git)
+- Uses Firebase Authentication for secure access
+- OAuth2 for Google services
+
+## 🛠 Troubleshooting
+
+- If you get CORS errors, ensure your Firebase Auth domains include `localhost`
+- Check Docker logs with `docker compose logs`
+- Clear browser cache if you encounter stale data issues
 
    # Backend Configuration
    DATABASE_URL=your-database-url
