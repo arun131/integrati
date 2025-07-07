@@ -73,7 +73,7 @@ frontend/
 2. **Create environment variables:**
    Create a `.env.development` file with:
    ```
-   REACT_APP_BACKEND_URL=http://localhost:8000
+   REACT_APP_BACKEND_URL=http://backend:8000
    REACT_APP_FIREBASE_API_KEY=your-firebase-api-key
    REACT_APP_FIREBASE_AUTH_DOMAIN=your-project.firebaseapp.com
    REACT_APP_FIREBASE_PROJECT_ID=your-project-id

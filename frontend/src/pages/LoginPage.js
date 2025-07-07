@@ -2,6 +2,9 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
+import { initializeApp } from 'firebase/app';
+import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
 
 function LoginPage() {
     const { signInWithGoogle, signInWithGithub, signInWithEmail, signUpWithEmail, login } = useAuth();
@@ -29,18 +32,11 @@ function LoginPage() {
                     const integrationType = queryParams.get('integration');
                     if (integrationType) {
                         try {
-                            console.log('Initializing Firebase...');
-                            const { initializeApp } = await import('firebase/app');
-                            const { getFirestore, collection, doc, setDoc } = await import('firebase/firestore');
-                            const { getAuth } = await import('firebase/auth');
-                            
                             // Initialize Firebase if not already initialized
                             let app;
                             try {
                                 app = window.firebase.app();
-                                console.log('Firebase already initialized');
                             } catch (e) {
-                                console.log('Initializing Firebase app...');
                                 const firebaseConfig = {
                                     apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
                                     authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
@@ -51,21 +47,15 @@ function LoginPage() {
                                 };
                                 app = initializeApp(firebaseConfig);
                             }
-                            
                             const db = getFirestore(app);
                             const auth = getAuth(app);
-                            
-                            // Wait for auth state to be ready
                             await new Promise((resolve) => {
                                 const unsubscribe = auth.onAuthStateChanged((user) => {
                                     unsubscribe();
                                     resolve(user);
                                 });
                             });
-                            
                             const currentUser = auth.currentUser;
-                            console.log('Firebase currentUser:', currentUser);
-                            
                             if (currentUser) {
                                 const integrationData = {
                                     userId: currentUser.uid,
@@ -74,33 +64,22 @@ function LoginPage() {
                                     createdAt: new Date().toISOString(),
                                     debug_timestamp: Date.now()
                                 };
-                                
-                                console.log('Adding integration:', integrationData);
-                                
-                                // Add with a new document ID
                                 const docRef = doc(collection(db, 'integrations'));
                                 await setDoc(docRef, integrationData);
-                                
-                                console.log('Integration added with ID:', docRef.id);
-                                
-                                // Force a refresh
-                                window.location.href = '/dashboard';
-                            } else {
-                                console.error('No authenticated user found in Firebase');
+                                navigate('/dashboard', { replace: true });
                             }
                         } catch (e) {
-                            console.error('Failed to store integration in Firestore', e);
+                            // Swallow error or set error state if needed
                         }
                     }
                 } catch (err) {
-                    console.error('Login error:', err);
                     setError('Invalid token received from backend.');
                 }
             }
         };
         
         handleToken();
-    }, [location, login]);
+    }, [location, login, navigate]);
 
     const handleGoogleSignIn = async () => {
         setLoading(true);

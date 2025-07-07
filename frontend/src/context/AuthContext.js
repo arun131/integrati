@@ -40,17 +40,15 @@ export const AuthProvider = ({ children }) => {
                         const data = await response.json();
                         setToken(data.access_token);
                         setUserEmail(user.email);
-                    } else {
-                        console.error('Failed to get backend JWT for Firebase user');
                     }
                 } catch (error) {
-                    console.error('Error getting backend JWT:', error);
                 }
             }
             
-            // Only set loading to false if we have either a user or a token
+            // Always set loading to false after first check
+            setLoading(false);
             if (user || token) {
-                setLoading(false);
+            } else {
             }
         });
 
@@ -80,7 +78,6 @@ export const AuthProvider = ({ children }) => {
             const result = await signInWithPopup(auth, googleProvider);
             return result.user;
         } catch (error) {
-            console.error('Google sign-in error:', error);
             throw error;
         }
     };
@@ -90,7 +87,6 @@ export const AuthProvider = ({ children }) => {
             const result = await signInWithPopup(auth, githubProvider);
             return result.user;
         } catch (error) {
-            console.error('GitHub sign-in error:', error);
             throw error;
         }
     };
@@ -100,7 +96,6 @@ export const AuthProvider = ({ children }) => {
             const result = await signInWithEmailAndPassword(auth, email, password);
             return result.user;
         } catch (error) {
-            console.error('Email sign-in error:', error);
             throw error;
         }
     };
@@ -110,7 +105,6 @@ export const AuthProvider = ({ children }) => {
             const result = await createUserWithEmailAndPassword(auth, email, password);
             return result.user;
         } catch (error) {
-            console.error('Email sign-up error:', error);
             throw error;
         }
     };
@@ -126,7 +120,6 @@ export const AuthProvider = ({ children }) => {
             // Sign out from Firebase
             await signOut(auth);
         } catch (error) {
-            console.error('Firebase logout error:', error);
         }
         
         // Clear JWT token and email
@@ -149,7 +142,6 @@ export const AuthProvider = ({ children }) => {
         logout
     };
 
-    console.log("AuthProvider loading:", loading, "user:", user, "token:", token);
     return (
         <AuthContext.Provider value={value}>
             {!loading && children}

@@ -34,14 +34,17 @@ def get_google_auth_flow():
 def get_google_credentials(token_data: dict, db_user_id: int, db):
     creds = None
     if token_data:
-        creds = Credentials(
-            token=token_data.get('access_token'),
-            refresh_token=token_data.get('refresh_token'),
-            token_uri='https://oauth2.googleapis.com/token',
-            client_id=settings.GOOGLE_CLIENT_ID,
-            client_secret=settings.GOOGLE_CLIENT_SECRET,
-            scopes=SCOPES
-        )
+        try:
+            creds = Credentials(
+                token=token_data.get('access_token'),
+                refresh_token=token_data.get('refresh_token'),
+                token_uri='https://oauth2.googleapis.com/token',
+                client_id=settings.GOOGLE_CLIENT_ID,
+                client_secret=settings.GOOGLE_CLIENT_SECRET,
+                scopes=SCOPES
+            )
+        except Exception as e:
+            return None
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
@@ -51,10 +54,8 @@ def get_google_credentials(token_data: dict, db_user_id: int, db):
                 if db_user:
                     update_user_tokens(db, db_user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
             except Exception as e:
-                print(f"Error refreshing token: {e}")
                 return None
         else:
-            print("No valid credentials or refresh token available.")
             return None
     return creds
 
@@ -92,7 +93,6 @@ def search_gmail_messages(service, query: str):
             })
         return parsed_messages
     except Exception as e:
-        print(f"Error searching Gmail messages: {e}")
         return []
 
 def get_last_received_email(service):
@@ -125,7 +125,6 @@ def get_last_received_email(service):
             }
         return None
     except Exception as e:
-        print(f"Error getting last email: {e}")
         return None
 
 def send_gmail_message(service, sender_email: str, to_email: str, subject: str, message_text: str, thread_id: Optional[str] = None):
@@ -144,5 +143,4 @@ def send_gmail_message(service, sender_email: str, to_email: str, subject: str, 
         send_message = service.users().messages().send(userId='me', body=body).execute()
         return send_message
     except Exception as e:
-        print(f"Error sending Gmail message: {e}")
         return None 

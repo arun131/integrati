@@ -41,7 +41,6 @@ function SendEmailPage() {
             }
         } catch (err) {
             setError('Failed to send email. Please check your inputs and try again.');
-            console.error('Send email error:', err);
         } finally {
             setLoading(false);
         }

@@ -44,15 +44,24 @@ function AddIntegrationPage() {
         setSuccess('');
 
         try {
-            // Redirect to backend OAuth endpoint for the selected integration
+            // Use localhost for local Docker testing; change to 'http://backend:8000' for Docker Compose networking
             let backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+            console.log('[AddIntegrationPage] Using backendUrl:', backendUrl);
+            console.log('[AddIntegrationPage] Selected integration:', selectedIntegration);
+            // Remove trailing slash and any trailing '/integrations' from backendUrl
+            backendUrl = backendUrl.replace(/\/?integrations\/?$/, '');
+            let redirectUrl = '';
             if (selectedIntegration === 'gmail') {
-                window.location.href = `${backendUrl}/integrations/gmail/auth/login`;
+                redirectUrl = `${backendUrl}/integrations/gmail/auth/login`;
             } else if (selectedIntegration === 'calendar') {
-                window.location.href = `${backendUrl}/integrations/calendar/auth/login`;
+                redirectUrl = `${backendUrl}/integrations/calendar/auth/login`;
             } else {
                 setError('Unknown integration type.');
+                return;
             }
+            // Debug: Log the final redirect URL
+            console.log('[AddIntegrationPage] Redirecting to:', redirectUrl);
+            window.location.href = redirectUrl;
         } catch (error) {
             console.error('Error adding integration:', error);
             setError('Failed to add integration. Please try again.');

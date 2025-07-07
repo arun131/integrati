@@ -37,7 +37,6 @@ function CreateEventPage() {
             setAttendees('');
         } catch (err) {
             setError('Failed to create event. Please check your inputs and try again.');
-            console.error('Create event error:', err);
         } finally {
             setLoading(false);
         }

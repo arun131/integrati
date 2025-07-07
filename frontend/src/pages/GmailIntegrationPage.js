@@ -21,7 +21,6 @@ function GmailIntegrationPage() {
             setSearchResults(response.data);
         } catch (err) {
             setError('Failed to search emails. Please try again.');
-            console.error('Search error:', err);
         } finally {
             setLoading(false);
         }
@@ -36,7 +35,6 @@ function GmailIntegrationPage() {
             setSearchResults([]);
         } catch (err) {
             setError('Failed to retrieve last email. Please try again.');
-            console.error('Get last email error:', err);
         } finally {
             setLoading(false);
         }

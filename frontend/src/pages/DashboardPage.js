@@ -25,23 +25,16 @@ function DashboardPage() {
 
     const loadUserIntegrations = async () => {
         try {
-            console.log('Loading integrations for user:', user?.uid);
             const integrationsRef = collection(db, 'integrations');
             const q = query(integrationsRef, where('userId', '==', user.uid));
-            console.log('Firestore query:', q);
             
             const querySnapshot = await getDocs(q);
-            console.log('Query results:', querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })));
             
             const userIntegrations = [];
             querySnapshot.forEach((doc) => {
                 userIntegrations.push({ id: doc.id, ...doc.data() });
             });
             
-            console.log('Setting integrations:', userIntegrations);
             setIntegrations(userIntegrations);
         } catch (error) {
             console.error('Error loading integrations:', error);

@@ -12,7 +12,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Database settings
-    DATABASE_URL: str = "sqlite:///./app/database/app.db" # Relative path within container
+    DATABASE_URL: str = "sqlite:///./app.db" # Relative path within container
 
     # CORS settings (add your Vercel frontend URL here in production)
     FRONTEND_URL: str = "http://localhost:3000" # For local development
