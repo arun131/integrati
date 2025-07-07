@@ -149,6 +149,7 @@ export const AuthProvider = ({ children }) => {
         logout
     };
 
+    console.log("AuthProvider loading:", loading, "user:", user, "token:", token);
     return (
         <AuthContext.Provider value={value}>
             {!loading && children}

@@ -1,32 +1,62 @@
 # Gmail & Calendar Manager Backend (FastAPI)
 
-This is the FastAPI backend for the Gmail & Calendar Manager MVP. It provides secure Google OAuth2 login, Gmail API operations (search, get last email, send, reply), and JWT-based authentication for the frontend.
+This is the FastAPI backend for the Gmail & Calendar Manager MVP. It provides Firebase authentication, Gmail API operations (search, get last email, send, reply), and Google Calendar operations (view, create, delete events) with JWT-based authentication for the frontend.
 
 ## Features
-- Google OAuth2 login (secure, with refresh token storage)
-- Search Gmail inbox
-- Get last received email
-- Send new email
-- Reply to previous email
+- Firebase authentication integration
+- Gmail API operations (search, get last email, send, reply)
+- Google Calendar operations (view, create, delete events)
 - JWT session management
 - SQLite database for user/token storage
-- Dockerized for easy deployment (Google Cloud Run ready)
+- Dockerized for easy deployment
 
 ## Project Structure
 ```
 backend/
 ├── app/
-│   ├── api/           # FastAPI routers (auth, gmail)
-│   ├── core/          # Config, security, dependencies
-│   ├── crud/          # Database CRUD operations
-│   ├── database/      # DB connection
-│   ├── models/        # SQLAlchemy & Pydantic models
-│   └── services/      # Google API logic
-├── requirements.txt   # Python dependencies
-├── Dockerfile         # Docker build
-├── .env.example       # Example environment variables
-└── README.md          # This file
+│   ├── api/                      # Core API routers (auth)
+│   ├── core/                     # Config, security, dependencies
+│   ├── crud/                     # Database CRUD operations
+│   ├── database/                 # DB connection
+│   ├── models/                   # SQLAlchemy & Pydantic models
+│   └── integrations/             # Google API integrations
+│       ├── gmail/                # Gmail API logic
+│       │   ├── api.py            # Gmail API endpoints
+│       │   ├── auth.py           # Gmail OAuth handling
+│       │   └── google_auth.py    # Google credentials management
+│       └── calendar/             # Calendar API logic
+│           ├── api.py            # Calendar API endpoints
+│           ├── auth.py           # Calendar OAuth handling
+│           └── google_auth.py    # Google credentials management
+├── requirements.txt              # Python dependencies
+├── Dockerfile                    # Docker build
+├── firebase-service-account.json # Firebase service account
+└── README.md                     # This file
 ```
+
+## Code Flow
+
+### Authentication Flow
+1. **Frontend** → Firebase Authentication → Gets Firebase ID token
+2. **Frontend** → Backend `/api/auth/firebase-token` → Exchanges Firebase token for JWT
+3. **Backend** → Verifies Firebase token → Creates/updates user in database → Returns JWT
+4. **Frontend** → Uses JWT for subsequent API calls
+
+### Gmail Integration Flow
+1. **User** → Frontend → Initiates Gmail OAuth via `/integrations/gmail/auth/login`
+2. **Google** → Redirects to `/integrations/gmail/auth/callback` → Stores tokens in database
+3. **Frontend** → Calls Gmail API endpoints with JWT:
+   - `POST /integrations/gmail/api/search` - Search emails
+   - `GET /integrations/gmail/api/last-received` - Get last email
+   - `POST /integrations/gmail/api/send` - Send/reply to email
+
+### Calendar Integration Flow
+1. **User** → Frontend → Initiates Calendar OAuth via `/integrations/calendar/auth/login`
+2. **Google** → Redirects to `/integrations/calendar/auth/callback` → Stores tokens in database
+3. **Frontend** → Calls Calendar API endpoints with JWT:
+   - `GET /integrations/calendar/api/events` - Get calendar events
+   - `POST /integrations/calendar/api/events` - Create new event
+   - `DELETE /integrations/calendar/api/events/{event_id}` - Delete event
 
 ## Setup (Local Development)
 
@@ -40,10 +70,11 @@ backend/
    ```bash
    pip install -r requirements.txt
    ```
-4. **Create `.env` file:**
-   - Copy `.env.example` to `.env` and fill in your Google OAuth credentials, secret key, and frontend URL.
-5. **Add Google OAuth credentials:**
-   - Download `credentials.json` from Google Cloud Console and place it in `backend/app/`.
+4. **Set up Firebase:**
+   - Place your `firebase-service-account.json` in the backend directory
+   - Or set `FIREBASE_SERVICE_ACCOUNT_JSON` environment variable
+5. **Create `.env` file:**
+   - Copy `.env.example` to `.env` and fill in your configuration
 6. **Run the backend:**
    ```bash
    uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
@@ -52,32 +83,59 @@ backend/
 ## Running with Docker
 1. **Build the Docker image:**
    ```bash
-   docker build -t my-gmail-backend-mvp .
+   docker build -t gmail-calendar-backend .
    ```
 2. **Run the container:**
    ```bash
-   docker run -p 8000:8000 --env-file .env my-gmail-backend-mvp
+   docker run -p 8000:8000 --env-file .env gmail-calendar-backend
    ```
 
 ## Environment Variables
-See `.env.example` for all required variables:
-- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET`, `GOOGLE_REDIRECT_URI`
-- `SECRET_KEY`, `FRONTEND_URL`
+Required environment variables:
+- `FIREBASE_SERVICE_ACCOUNT_PATH` or `FIREBASE_SERVICE_ACCOUNT_JSON` - Firebase credentials
+- `SECRET_KEY` - JWT secret key
+- `FRONTEND_URL` - Frontend URL for CORS
+- `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` - Google OAuth credentials
 
 ## API Endpoints
-- `GET /auth/google/login` — Initiate Google OAuth2 login
-- `GET /auth/google/callback` — OAuth2 callback
-- `GET /auth/me` — Get current user info (JWT required)
-- `POST /gmail/search` — Search emails (JWT required)
-- `GET /gmail/last-received` — Get last email (JWT required)
-- `POST /gmail/send` — Send or reply to email (JWT required)
 
-## Deployment (Google Cloud Run)
-- Build and push Docker image to Google Container Registry
-- Deploy to Cloud Run, set environment variables in the service config
-- Update Google Cloud Console with your Cloud Run callback URL
+### Authentication
+- `POST /api/auth/firebase-token` — Exchange Firebase token for JWT
+- `GET /api/auth/me` — Get current user info (JWT required)
+
+### Gmail Integration
+- `GET /integrations/gmail/auth/login` — Initiate Gmail OAuth
+- `GET /integrations/gmail/auth/callback` — Gmail OAuth callback
+- `POST /integrations/gmail/api/search` — Search emails (JWT required)
+- `GET /integrations/gmail/api/last-received` — Get last email (JWT required)
+- `POST /integrations/gmail/api/send` — Send or reply to email (JWT required)
+
+### Calendar Integration
+- `GET /integrations/calendar/auth/login` — Initiate Calendar OAuth
+- `GET /integrations/calendar/auth/callback` — Calendar OAuth callback
+- `GET /integrations/calendar/api/events` — Get calendar events (JWT required)
+- `POST /integrations/calendar/api/events` — Create new event (JWT required)
+- `DELETE /integrations/calendar/api/events/{event_id}` — Delete event (JWT required)
+
+## Key Components
+
+### Core Modules
+- **`app/core/`** - Configuration, security, and dependency injection
+- **`app/models/`** - Database models and Pydantic schemas
+- **`app/database/`** - Database connection and session management
+- **`app/crud/`** - Database operations for users and tokens
+
+### Integration Modules
+- **`app/integrations/gmail/`** - Complete Gmail API integration
+- **`app/integrations/calendar/`** - Complete Calendar API integration
+- Each integration has its own OAuth flow and API endpoints
+
+### Authentication
+- Uses Firebase for initial authentication
+- JWT tokens for API authorization
+- Automatic token refresh for Google APIs
 
 ## Notes
-- **Never commit your `.env` or `credentials.json` to git!**
+- **Never commit your `.env` or `firebase-service-account.json` to git!**
 - Update CORS origins in `main.py` for production.
-- For full setup, see the main project README or deployment guide. 
+- The backend supports both Gmail and Calendar integrations with separate OAuth flows. 

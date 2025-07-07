@@ -30,4 +30,7 @@ def update_user_tokens(db: Session, user: User, access_token: str, refresh_token
     db.add(user)
     db.commit()
     db.refresh(user)
-    return user 
+    return user
+
+def get_user_by_id(db: Session, user_id: int):
+    return db.query(User).filter(User.id == user_id).first() 

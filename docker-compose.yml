@@ -19,8 +19,9 @@ services:
     build: ./backend
     ports:
       - "8000:8000"
+      - "9000:9000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SECRET_KEY=${SECRET_KEY}

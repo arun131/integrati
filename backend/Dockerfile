@@ -8,13 +8,18 @@ WORKDIR /app
 RUN apt-get update && apt-get install -y --no-install-recommends \
     build-essential \
     libsqlite3-dev \
+    sqlite3 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
+
+# Install uv (universal virtualenv/package manager)
+RUN pip install uv
 
 # Copy the requirements file first to leverage Docker cache
 COPY requirements.txt /app/requirements.txt
 
-# Install any needed packages specified in requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt
+# Install any needed packages specified in requirements.txt using uv
+RUN uv pip install --system --no-cache-dir -r /app/requirements.txt
 
 # Copy the rest of the application code
 COPY app /app/app
@@ -24,6 +29,9 @@ ENV PYTHONPATH=/app
 
 # Expose the port FastAPI will run on (e.g., 8000)
 EXPOSE 8000
+EXPOSE 9000
 
-# Command to run the application using Uvicorn (FastAPI's recommended ASGI server)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"] 
+COPY start.sh /app/start.sh
+RUN chmod +x /app/start.sh
+
+CMD ["/app/start.sh"] 
