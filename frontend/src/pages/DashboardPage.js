@@ -58,9 +58,20 @@ function DashboardPage() {
 
     const handleIntegrationClick = (integration) => {
         if (integration.status === 'pending') {
-            alert(`${getIntegrationName(integration.type)} integration is pending. OAuth setup will be implemented soon!`);
+            alert(`${getIntegrationName(integration.integration_name)} integration is pending. OAuth setup will be implemented soon!`);
         } else {
-            navigate(`/integration/${integration.type}/${integration.id}`);
+            // Map integration names to the correct routes
+            const routeMap = {
+                'gmail': '/integration/gmail',
+                'calendar': '/integration/calendar'
+            };
+
+            const baseRoute = routeMap[integration.integration_name];
+            if (baseRoute) {
+                navigate(`${baseRoute}/${integration.id}`);
+            } else {
+                console.error('Unknown integration type:', integration.integration_name);
+            }
         }
     };
 
@@ -209,25 +220,25 @@ function DashboardPage() {
                                         width: '40px',
                                         height: '40px',
                                         borderRadius: '50%',
-                                        backgroundColor: getIntegrationColor(integration.type),
+                                        backgroundColor: getIntegrationColor(integration.integration_name),
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         marginRight: '15px'
                                     }}>
-                                        {getIntegrationIcon(integration.type)}
+                                        {getIntegrationIcon(integration.integration_name)}
                                     </div>
                                     <div>
                                         <h3 style={{ margin: '0 0 5px 0', color: '#333' }}>
-                                            {getIntegrationName(integration.type)}
+                                            {getIntegrationName(integration.integration_name)}
                                         </h3>
                                         <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                                            {integration.status === 'active' ? 'Connected' : 'Disconnected'}
+                                            {integration.status === 'connected' ? 'Connected' : 'Disconnected'}
                                         </p>
                                     </div>
                                 </div>
                                 <p style={{ color: '#666', fontSize: '14px', margin: '0' }}>
-                                    {getIntegrationDescription(integration.type)}
+                                    {getIntegrationDescription(integration.integration_name)}
                                 </p>
                             </div>
                         ))}
@@ -238,16 +249,16 @@ function DashboardPage() {
     );
 }
 
-const getIntegrationColor = (type) => {
-    switch (type) {
+const getIntegrationColor = (integrationName) => {
+    switch (integrationName) {
         case 'gmail': return '#4285f4';
         case 'calendar': return '#34a853';
         default: return '#6c757d';
     }
 };
 
-const getIntegrationIcon = (type) => {
-    switch (type) {
+const getIntegrationIcon = (integrationName) => {
+    switch (integrationName) {
         case 'gmail':
             return (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
@@ -269,16 +280,16 @@ const getIntegrationIcon = (type) => {
     }
 };
 
-const getIntegrationName = (type) => {
-    switch (type) {
+const getIntegrationName = (integrationName) => {
+    switch (integrationName) {
         case 'gmail': return 'Gmail';
         case 'calendar': return 'Google Calendar';
         default: return 'Unknown';
     }
 };
 
-const getIntegrationDescription = (type) => {
-    switch (type) {
+const getIntegrationDescription = (integrationName) => {
+    switch (integrationName) {
         case 'gmail': return 'Send, receive, and manage your emails';
         case 'calendar': return 'Schedule and manage your events';
         default: return 'Integration description';
