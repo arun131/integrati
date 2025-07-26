@@ -161,8 +161,7 @@ This project is licensed under the MIT License.
 
 
 
-npx @modelcontextprotocol/inspector
+npx @modelcontextprotocol/inspector -> use localhost
 
-Issues: loosing auth
-frontend is now broken 
-mcp returns a success even after not recieving message
+mcp working with userid as an int
+frontend and backend auth and everything working.
