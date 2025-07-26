@@ -1,5 +1,6 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
+import { AuthProvider, useAuth } from './AuthContext';
 
 // Mock the entire AuthContext module
 jest.mock('./AuthContext', () => ({
@@ -17,9 +18,6 @@ jest.mock('./AuthContext', () => ({
     logout: jest.fn()
   })
 }));
-
-// Import the mocked components
-import { AuthProvider, useAuth } from './AuthContext';
 
 // Test component to use the context
 const TestComponent = () => {

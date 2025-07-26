@@ -5,9 +5,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
-  GithubAuthProvider
+  onAuthStateChanged
 } from 'firebase/auth';
 import { auth, googleProvider, githubProvider } from '../firebase';
 
@@ -58,6 +56,7 @@ export const AuthProvider = ({ children }) => {
         }
 
         return () => unsubscribe();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [token]);
 
     useEffect(() => {

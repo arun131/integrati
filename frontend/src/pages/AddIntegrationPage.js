@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 
 function AddIntegrationPage() {
-    const { user } = useAuth();
     const navigate = useNavigate();
     const [selectedIntegration, setSelectedIntegration] = useState('');
     const [loading, setLoading] = useState(false);
@@ -67,14 +63,6 @@ function AddIntegrationPage() {
             setError('Failed to add integration. Please try again.');
         } finally {
             setLoading(false);
-        }
-    };
-
-    const getIntegrationName = (type) => {
-        switch (type) {
-            case 'gmail': return 'Gmail';
-            case 'calendar': return 'Google Calendar';
-            default: return 'Integration';
         }
     };
 

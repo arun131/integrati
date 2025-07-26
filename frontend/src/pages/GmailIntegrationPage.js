@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 function GmailIntegrationPage() {
-    const { user } = useAuth();
     const navigate = useNavigate();
-    const { integrationId } = useParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [lastEmail, setLastEmail] = useState(null);
