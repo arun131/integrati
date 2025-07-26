@@ -17,7 +17,9 @@ jest.mock('react-router-dom', () => ({
   BrowserRouter: ({ children }) => <div data-testid="router">{children}</div>,
   Routes: ({ children }) => <div data-testid="routes">{children}</div>,
   Route: ({ element }) => <div data-testid="route">{element}</div>,
-  Navigate: () => <div data-testid="navigate">Navigate</div>
+  Navigate: () => <div data-testid="navigate">Navigate</div>,
+  useNavigate: () => jest.fn(),
+  useLocation: () => ({ search: '' })
 }));
 
 describe('App Component', () => {

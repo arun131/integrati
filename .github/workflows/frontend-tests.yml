@@ -29,7 +29,9 @@ jobs:
 
     - name: Install dependencies
       working-directory: ./frontend
-      run: npm ci
+      run: |
+        npm ci
+        npm install axios@1.6.0
 
     - name: Run linting
       working-directory: ./frontend
