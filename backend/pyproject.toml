@@ -1,0 +1,191 @@
+[tool.ruff]
+# Enable pycodestyle (`E`), Pyflakes (`F`), and isort (`I`) codes by default.
+select = ["E", "F", "I", "W", "B", "C4", "UP", "N", "Q", "SIM", "ARG", "PIE", "T20", "TCH", "TID", "TCH", "RUF"]
+ignore = [
+    "E501",  # line too long, handled by formatter
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "W191",  # indentation contains tabs
+    "E722",  # do not use bare except
+    "E731",  # do not assign a lambda expression, use a def
+    "W291",  # trailing whitespace
+    "W293",  # blank line contains whitespace
+    "E402",  # module level import not at top of file
+    "E731",  # do not assign a lambda expression, use a def
+    "F401",  # imported but unused
+    "F403",  # wildcard import
+    "F405",  # name may be undefined, or defined from star imports
+    "F811",  # reimported while unused
+    "F821",  # undefined name
+    "F822",  # undefined name in __all__
+    "F823",  # local variable referenced before assignment
+    "F831",  # duplicate argument name in function definition
+    "F841",  # local variable is assigned to but never used
+    "F842",  # local variable is assigned to but never used
+    "F901",  # raise NotImplemented should be NotImplementedError
+    "F902",  # invalid syntax
+    "F903",  # invalid syntax
+    "F904",  # invalid syntax
+    "F905",  # invalid syntax
+    "F906",  # invalid syntax
+    "F907",  # invalid syntax
+    "F908",  # invalid syntax
+    "F909",  # invalid syntax
+    "F910",  # invalid syntax
+    "F911",  # invalid syntax
+    "F912",  # invalid syntax
+    "F913",  # invalid syntax
+    "F914",  # invalid syntax
+    "F915",  # invalid syntax
+    "F916",  # invalid syntax
+    "F917",  # invalid syntax
+    "F918",  # invalid syntax
+    "F919",  # invalid syntax
+    "F920",  # invalid syntax
+    "F921",  # invalid syntax
+    "F922",  # invalid syntax
+    "F923",  # invalid syntax
+    "F924",  # invalid syntax
+    "F925",  # invalid syntax
+    "F926",  # invalid syntax
+    "F927",  # invalid syntax
+    "F928",  # invalid syntax
+    "F929",  # invalid syntax
+    "F930",  # invalid syntax
+    "F931",  # invalid syntax
+    "F932",  # invalid syntax
+    "F933",  # invalid syntax
+    "F934",  # invalid syntax
+    "F935",  # invalid syntax
+    "F936",  # invalid syntax
+    "F937",  # invalid syntax
+    "F938",  # invalid syntax
+    "F939",  # invalid syntax
+    "F940",  # invalid syntax
+    "F941",  # invalid syntax
+    "F942",  # invalid syntax
+    "F943",  # invalid syntax
+    "F944",  # invalid syntax
+    "F945",  # invalid syntax
+    "F946",  # invalid syntax
+    "F947",  # invalid syntax
+    "F948",  # invalid syntax
+    "F949",  # invalid syntax
+    "F950",  # invalid syntax
+    "F951",  # invalid syntax
+    "F952",  # invalid syntax
+    "F953",  # invalid syntax
+    "F954",  # invalid syntax
+    "F955",  # invalid syntax
+    "F956",  # invalid syntax
+    "F957",  # invalid syntax
+    "F958",  # invalid syntax
+    "F959",  # invalid syntax
+    "F960",  # invalid syntax
+    "F961",  # invalid syntax
+    "F962",  # invalid syntax
+    "F963",  # invalid syntax
+    "F964",  # invalid syntax
+    "F965",  # invalid syntax
+    "F966",  # invalid syntax
+    "F967",  # invalid syntax
+    "F968",  # invalid syntax
+    "F969",  # invalid syntax
+    "F970",  # invalid syntax
+    "F971",  # invalid syntax
+    "F972",  # invalid syntax
+    "F973",  # invalid syntax
+    "F974",  # invalid syntax
+    "F975",  # invalid syntax
+    "F976",  # invalid syntax
+    "F977",  # invalid syntax
+    "F978",  # invalid syntax
+    "F979",  # invalid syntax
+    "F980",  # invalid syntax
+    "F981",  # invalid syntax
+    "F982",  # invalid syntax
+    "F983",  # invalid syntax
+    "F984",  # invalid syntax
+    "F985",  # invalid syntax
+    "F986",  # invalid syntax
+    "F987",  # invalid syntax
+    "F988",  # invalid syntax
+    "F989",  # invalid syntax
+    "F990",  # invalid syntax
+    "F991",  # invalid syntax
+    "F992",  # invalid syntax
+    "F993",  # invalid syntax
+    "F994",  # invalid syntax
+    "F995",  # invalid syntax
+    "F996",  # invalid syntax
+    "F997",  # invalid syntax
+    "F998",  # invalid syntax
+    "F999",  # invalid syntax
+]
+
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+fixable = ["ALL"]
+unfixable = []
+
+# Exclude a variety of commonly ignored directories.
+exclude = [
+    ".bzr",
+    ".direnv",
+    ".eggs",
+    ".git",
+    ".git-rewrite",
+    ".hg",
+    ".mypy_cache",
+    ".nox",
+    ".pants.d",
+    ".pytype",
+    ".ruff_cache",
+    ".svn",
+    ".tox",
+    ".venv",
+    "__pypackages__",
+    "_build",
+    "buck-out",
+    "build",
+    "dist",
+    "node_modules",
+    "venv",
+]
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+
+# Assume Python 3.11
+target-version = "py311"
+
+[tool.ruff.mccabe]
+# Unlike Flake8, default to a complexity level of 10.
+max-complexity = 10
+
+[tool.ruff.format]
+# Like Black, use double quotes for strings.
+quote-style = "double"
+
+# Like Black, indent with spaces, rather than tabs.
+indent-style = "space"
+
+# Like Black, respect magic trailing commas.
+skip-magic-trailing-comma = false
+
+# Like Black, automatically detect the appropriate line ending.
+line-ending = "auto"
+
+[tool.ruff.isort]
+# Like `isort`, respect the `force_sort_within_sections` setting.
+force-sort-within-sections = true
+
+# Like `isort`, order imports by type.
+order-by-type = true
+
+# Like `isort`, distinguish between from-import and import statements.
+split-on-trailing-comma = false
+
+[tool.ruff.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*" = ["B011"] 
