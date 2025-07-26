@@ -26,16 +26,23 @@ def get_google_credentials(user, db_user_id: int, db) -> Credentials | None:
     if db_user and db_user.access_token:
         print(f"Creating credentials for user: {db_user.email}")
         print(f"User scopes: {db_user.scope}")
-        # Use the scopes that were granted during OAuth
-        scopes = db_user.scope.split(" ") if db_user.scope else []
-        print(f"Parsed scopes: {scopes}")
+        # Use the scopes that were granted during OAuth, but filter out invalid ones
+        all_scopes = db_user.scope.split(" ") if db_user.scope else []
+        # Filter out invalid scopes like 'firebase_auth' that are not valid for Google OAuth
+        valid_scopes = [
+            scope
+            for scope in all_scopes
+            if scope.startswith("https://") or scope in ["openid"]
+        ]
+        print(f"Parsed scopes: {all_scopes}")
+        print(f"Valid scopes for Google OAuth: {valid_scopes}")
         user_info = {
             "token": db_user.access_token,
             "refresh_token": db_user.refresh_token,
             "token_uri": "https://oauth2.googleapis.com/token",
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "scopes": scopes,
+            "scopes": valid_scopes,
         }
         creds = Credentials.from_authorized_user_info(info=user_info)
         print(f"Credentials created: {creds is not None}")

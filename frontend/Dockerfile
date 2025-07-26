@@ -23,6 +23,7 @@ ENV REACT_APP_BACKEND_URL=$REACT_APP_BACKEND_URL
 COPY package*.json ./
 RUN npm install
 COPY . .
+COPY src/components /app/src/components
 
 # Build the app (environment variables will be available at build time)
 RUN npm run build

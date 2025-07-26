@@ -12,3 +12,7 @@ firebase-admin==6.5.0
 mcp
 click
 anyio
+langchain-mcp-adapters
+langchain-openai
+langchain-google-genai
+langgraph

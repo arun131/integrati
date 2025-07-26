@@ -44,7 +44,25 @@ def connect_integration(
     db: Session = Depends(get_db),
 ):
     integration = create_user_integration(db, current_user.id, integration_name)
-    # TODO: Create default tools for this integration for the user
+
+    # Create default tools for this integration for the user
+    if integration_name == "gmail":
+        # Create Gmail tools
+        create_user_tool(db, current_user.id, "gmail", "search_emails", "enabled")
+        create_user_tool(db, current_user.id, "gmail", "get_last_email", "enabled")
+        create_user_tool(db, current_user.id, "gmail", "send_email", "enabled")
+    elif integration_name == "calendar":
+        # Create Calendar tools
+        create_user_tool(
+            db, current_user.id, "calendar", "get_calendar_events", "enabled"
+        )
+        create_user_tool(
+            db, current_user.id, "calendar", "create_calendar_event", "enabled"
+        )
+        create_user_tool(
+            db, current_user.id, "calendar", "delete_calendar_event", "enabled"
+        )
+
     return integration
 
 

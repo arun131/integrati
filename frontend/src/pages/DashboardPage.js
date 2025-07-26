@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
+import ChatbotWidget from '../components/ChatbotWidget';
 
 function DashboardPage() {
     const { user, logout } = useAuth();
@@ -91,6 +92,8 @@ function DashboardPage() {
             </div>
         );
     }
+
+    const token = localStorage.getItem('jwt_token');
 
     return (
         <div style={{
@@ -245,6 +248,7 @@ function DashboardPage() {
                     </div>
                 )}
             </div>
+            <ChatbotWidget token={token} />
         </div>
     );
 }

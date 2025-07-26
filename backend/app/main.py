@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.auth import router as auth_router
+from app.api.chatbot import router as chatbot_router
 from app.api.integration import router as integration_router
 from app.core.config import settings
 from app.database.connection import create_db_tables
@@ -42,6 +43,7 @@ app.include_router(
 app.include_router(
     calendar_auth_router, prefix="/integrations/calendar/auth", tags=["Calendar Auth"]
 )
+app.include_router(chatbot_router, prefix="/api/chatbot", tags=["Chatbot"])
 
 app.include_router(
     integration_router, prefix="/api/integration", tags=["Integration Management"]
