@@ -1,6 +1,6 @@
 # Integrati - Email & Calendar Manager
 
-A simple Docker-based application to manage Gmail and Google Calendar integrations.
+A modern, full-stack application for managing Gmail and Google Calendar integrations with comprehensive testing and CI/CD pipeline.
 
 ## 🚀 Quick Start
 
@@ -41,6 +41,10 @@ A simple Docker-based application to manage Gmail and Google Calendar integratio
 
    # Backend
    BACKEND_URL=http://localhost:8000
+   DATABASE_URL=sqlite:///./app.db
+   GOOGLE_CLIENT_ID=your-google-client-id
+   GOOGLE_CLIENT_SECRET=your-google-client-secret
+   SECRET_KEY=your-secret-key
    ```
 
 5. **Run with Docker**
@@ -49,69 +53,182 @@ A simple Docker-based application to manage Gmail and Google Calendar integratio
    ```
    The app will be available at http://localhost:3000
 
+## 🧪 Testing & Quality Assurance
+
+### Pre-commit Setup
+
+Before making any commits, ensure you have the pre-commit hooks installed:
+
+```bash
+# Install pre-commit hooks
+pre-commit install
+
+# Run all checks manually
+pre-commit run --all-files
+```
+
+### Backend Testing
+
+The backend includes comprehensive unit tests with 72 test cases and 55% code coverage:
+
+```bash
+cd backend
+
+# Run all tests
+pytest tests/unit/ -v
+
+# Run tests with coverage
+pytest tests/unit/ -v --cov=app --cov-report=term-missing
+
+# Run specific test categories
+pytest tests/unit/models/ -v      # Model tests
+pytest tests/unit/api/ -v         # API endpoint tests
+pytest tests/unit/crud/ -v        # Database operation tests
+pytest tests/unit/core/ -v        # Core functionality tests
+
+# Run linting
+ruff check app/
+ruff format app/
+```
+
+### Frontend Testing
+
+```bash
+cd frontend
+
+# Run tests
+npm test
+
+# Run linting
+npm run lint
+```
+
+### Testing Before Push
+
+**Always run these checks before pushing your code:**
+
+1. **Backend Tests**
+   ```bash
+   cd backend
+   pytest tests/unit/ -v --cov=app
+   ```
+
+2. **Linting & Formatting**
+   ```bash
+   ruff check app/ --fix
+   ruff format app/
+   ```
+
+3. **Pre-commit Hooks**
+   ```bash
+   pre-commit run --all-files
+   ```
+
+4. **Frontend Tests** (if frontend changes)
+   ```bash
+   cd frontend
+   npm test
+   npm run lint
+   ```
+
 ## 🔧 Features
 
 - **Gmail Integration**
-  - Search emails
+  - Search emails with advanced queries
   - Send and reply to emails
-  - View email threads
+  - View email threads and conversations
+  - Get last received email
 
 - **Google Calendar**
   - View upcoming events
   - Create new events
   - Manage event attendees
+  - Calendar synchronization
+
+- **User Management**
+  - Firebase Authentication
+  - JWT token-based sessions
+  - User integration tracking
+  - Pending action approvals
+
+## 🏗 Architecture
+
+### Backend (FastAPI + SQLAlchemy)
+- **FastAPI** - Modern, fast web framework
+- **SQLAlchemy** - Database ORM with SQLite
+- **Pydantic** - Data validation and settings
+- **Firebase Admin SDK** - Authentication
+- **Google APIs** - Gmail and Calendar integration
+
+### Frontend (React)
+- **React** - User interface
+- **Firebase Auth** - Client-side authentication
+- **Axios** - HTTP client for API calls
+
+### Testing & Quality
+- **Pytest** - Unit testing framework
+- **Ruff** - Fast Python linter and formatter
+- **Coverage** - Code coverage reporting
+- **Pre-commit hooks** - Automated quality checks
 
 ## 🔒 Security
 
-- All credentials are stored in `.env` (not committed to git)
-- Uses Firebase Authentication for secure access
+- All credentials stored in `.env` (not committed to git)
+- Firebase Authentication for secure access
 - OAuth2 for Google services
+- JWT tokens for session management
+- Input validation with Pydantic models
 
-## 🛠 Troubleshooting
+## 🚀 CI/CD Pipeline
 
-- If you get CORS errors, ensure your Firebase Auth domains include `localhost`
-- Check Docker logs with `docker compose logs`
-- Clear browser cache if you encounter stale data issues
+### GitHub Actions Workflows
 
-   # Backend Configuration
-   DATABASE_URL=your-database-url
-   GOOGLE_CLIENT_ID=your-google-client-id
-   GOOGLE_CLIENT_SECRET=your-google-client-secret
-   SECRET_KEY=your-secret-key
-   ```
+The project includes automated CI/CD pipelines:
 
-### 3. Run the Application
+1. **Backend Tests** (`.github/workflows/backend-tests.yml`)
+   - Runs on every push to main
+   - Executes all unit tests
+   - Performs linting with Ruff
+   - Security scanning with Bandit and Safety
+   - Uploads coverage to Codecov
 
-1. Build and start the containers:
-   ```bash
-   docker-compose up --build
-   ```
+2. **Frontend Tests** (`.github/workflows/frontend-tests.yml`)
+   - Runs on every push to main
+   - Executes frontend tests
+   - Performs linting
+   - Uploads coverage to Codecov
 
-2. Access the application:
-   - Frontend: http://localhost:3000
-   - Backend API: http://localhost:8000
-
-### 4. First Time Setup
-
-1. Open http://localhost:3000 in your browser
-2. Sign up or sign in using your preferred method (email, Google, or GitHub)
-3. Add your first integration (Gmail or Google Calendar)
-4. Grant necessary permissions when prompted
-5. Start using the integration features!
-
-## Development
-
-### Running in Development Mode
-
-For frontend development with hot reloading:
+### Local Development Workflow
 
 ```bash
-# Install dependencies in container
-docker run --rm -v $(pwd)/frontend:/app -w /app node:18 npm install
+# 1. Make your changes
+# 2. Run tests
+cd backend && pytest tests/unit/ -v
 
-# Start development server
-docker run --rm -v $(pwd)/frontend:/app -w /app -p 3000:3000 node:18 npm start
+# 3. Run linting
+ruff check app/ --fix
+
+# 4. Stage changes
+git add .
+
+# 5. Commit (pre-commit hooks run automatically)
+git commit -m "Your commit message"
+
+# 6. Push (GitHub Actions run automatically)
+git push origin main
 ```
+
+## 📊 Test Coverage
+
+Current test coverage: **55%** with 72 comprehensive tests covering:
+
+- **Models** (100% coverage) - All Pydantic and SQLAlchemy models
+- **CRUD Operations** (100% coverage) - Database operations
+- **API Endpoints** (92% coverage) - Authentication and integration endpoints
+- **Security Functions** (100% coverage) - JWT token management
+- **Core Configuration** (100% coverage) - Settings and dependencies
+
+## 🛠 Development
 
 ### Project Structure
 
@@ -126,42 +243,157 @@ docker run --rm -v $(pwd)/frontend:/app -w /app -p 3000:3000 node:18 npm start
 │   └── package.json
 ├── backend/                  # Python backend
 │   ├── app/
+│   │   ├── api/             # FastAPI routers
+│   │   ├── core/            # Configuration and security
+│   │   ├── crud/            # Database operations
+│   │   ├── models/          # SQLAlchemy and Pydantic models
+│   │   └── integrations/    # Gmail and Calendar integrations
+│   ├── tests/               # Comprehensive test suite
+│   │   ├── unit/            # Unit tests
+│   │   │   ├── api/         # API endpoint tests
+│   │   │   ├── core/        # Core functionality tests
+│   │   │   ├── crud/        # Database operation tests
+│   │   │   ├── models/      # Model validation tests
+│   │   │   └── integrations/ # Integration tests
+│   │   └── conftest.py      # Test configuration
 │   ├── Dockerfile
-│   └── requirements.txt
+│   ├── requirements.txt
+│   ├── requirements-test.txt # Test dependencies
+│   └── pyproject.toml       # Ruff configuration
+├── .github/workflows/       # CI/CD pipelines
 ├── docker-compose.yml       # Multi-container setup
-└── env.example             # Environment variables template
+└── .pre-commit-config.yaml  # Pre-commit hooks
 ```
 
-## API Endpoints
+### Running in Development Mode
+
+For frontend development with hot reloading:
+
+```bash
+# Install dependencies in container
+docker run --rm -v $(pwd)/frontend:/app -w /app node:18 npm install
+
+# Start development server
+docker run --rm -v $(pwd)/frontend:/app -w /app -p 3000:3000 node:18 npm start
+```
+
+For backend development:
+
+```bash
+cd backend
+
+# Install dependencies
+pip install -r requirements.txt
+pip install -r requirements-test.txt
+
+# Run development server
+uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+
+# Run tests in watch mode
+pytest tests/unit/ -v --cov=app --cov-report=term-missing -f
+```
+
+## 📋 API Endpoints
 
 ### Authentication
-- `POST /auth/google/gmail` - Gmail OAuth flow
-- `POST /auth/google/calendar` - Calendar OAuth flow
+- `POST /api/auth/firebase-token` - Firebase token exchange
+- `GET /api/auth/me` - Get current user info
 
 ### Gmail Integration
-- `GET /gmail/last-received` - Get last received email
-- `POST /gmail/search` - Search emails
-- `POST /gmail/send` - Send email
+- `GET /api/gmail/search` - Search emails
+- `GET /api/gmail/last-received` - Get last received email
+- `POST /api/gmail/send` - Send email
 
 ### Calendar Integration
-- `GET /calendar/events` - Get calendar events
-- `POST /calendar/events` - Create new event
+- `GET /api/calendar/events` - Get calendar events
+- `POST /api/calendar/events` - Create new event
+- `DELETE /api/calendar/events/{event_id}` - Delete event
 
-## Contributing
+### Integration Management
+- `GET /api/integrations` - List user integrations
+- `POST /api/integrations` - Create integration
+- `GET /api/pending-actions` - List pending actions
 
-1. Fork the repository
-2. Create a feature branch
-3. Make your changes
-4. Test thoroughly
-5. Submit a pull request
+## 🔧 Troubleshooting
 
-## License
+### Common Issues
+
+1. **CORS Errors**
+   - Ensure Firebase Auth domains include `localhost`
+   - Check backend CORS configuration
+
+2. **Database Issues**
+   - Verify `DATABASE_URL` in environment
+   - Check SQLite file permissions
+
+3. **OAuth Errors**
+   - Verify Google OAuth credentials
+   - Check redirect URIs in Google Cloud Console
+
+4. **Test Failures**
+   - Ensure all dependencies installed: `pip install -r requirements-test.txt`
+   - Check database connection in tests
+   - Verify mock configurations
+
+### Debug Commands
+
+```bash
+# Check Docker logs
+docker compose logs backend
+docker compose logs frontend
+
+# Run backend in debug mode
+cd backend && uvicorn app.main:app --reload --log-level debug
+
+# Check test coverage
+pytest tests/unit/ --cov=app --cov-report=html
+# Open htmlcov/index.html in browser
+```
+
+## 🤝 Contributing
+
+1. **Fork the repository**
+2. **Create a feature branch**
+   ```bash
+   git checkout -b feature/your-feature-name
+   ```
+3. **Make your changes**
+4. **Run tests and quality checks**
+   ```bash
+   cd backend && pytest tests/unit/ -v
+   ruff check app/ --fix
+   pre-commit run --all-files
+   ```
+5. **Commit your changes**
+   ```bash
+   git add .
+   git commit -m "Add your feature description"
+   ```
+6. **Push and create a pull request**
+
+### Code Quality Standards
+
+- All code must pass Ruff linting
+- All tests must pass (minimum 55% coverage)
+- Pre-commit hooks must pass
+- Follow PEP 8 style guidelines
+- Include appropriate docstrings
+
+## 📈 Monitoring & Analytics
+
+- **Code Coverage**: Tracked via Codecov
+- **Test Results**: Available in GitHub Actions
+- **Security**: Automated scanning with Bandit and Safety
+- **Performance**: Monitor via Docker logs and application metrics
+
+## 📄 License
 
 This project is licensed under the MIT License.
 
+## 🙏 Acknowledgments
 
-
-npx @modelcontextprotocol/inspector -> use localhost
-
-mcp working with userid as an int
-frontend and backend auth and everything working.
+- FastAPI for the excellent web framework
+- Firebase for authentication services
+- Google APIs for Gmail and Calendar integration
+- Pytest for comprehensive testing
+- Ruff for fast Python linting and formatting
