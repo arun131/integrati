@@ -1,6 +1,7 @@
 """
 This module contains the core functions for the Google Calendar integration.
 """
+
 from datetime import datetime, timedelta
 from typing import List, Optional
 
@@ -10,10 +11,12 @@ from googleapiclient.discovery import build
 from app.core.config import settings
 from app.crud.user import update_user_tokens
 
-def get_google_credentials(user, db_user_id: int, db) -> Optional[Credentials]:
+
+def get_google_credentials(user, db_user_id: int, db) -> Credentials | None:
     """Gets Google credentials from a user object."""
     # Get the actual SQLAlchemy user from database
     from app.crud.user import get_user_by_id
+
     db_user = get_user_by_id(db, db_user_id)
     if not db_user:
         print(f"User not found in database for ID: {db_user_id}")
@@ -24,7 +27,7 @@ def get_google_credentials(user, db_user_id: int, db) -> Optional[Credentials]:
         print(f"Creating credentials for user: {db_user.email}")
         print(f"User scopes: {db_user.scope}")
         # Use the scopes that were granted during OAuth
-        scopes = db_user.scope.split(' ') if db_user.scope else []
+        scopes = db_user.scope.split(" ") if db_user.scope else []
         print(f"Parsed scopes: {scopes}")
         user_info = {
             "token": db_user.access_token,
@@ -44,10 +47,18 @@ def get_google_credentials(user, db_user_id: int, db) -> Optional[Credentials]:
             try:
                 print("Attempting to refresh credentials...")
                 from google.auth.transport.requests import Request
+
                 creds.refresh(Request())
                 print("Credentials refreshed successfully")
                 if db_user:
-                    update_user_tokens(db, db_user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
+                    update_user_tokens(
+                        db,
+                        db_user,
+                        creds.token,
+                        creds.refresh_token,
+                        creds.expiry,
+                        " ".join(creds.scopes),
+                    )
             except Exception as e:
                 print(f"Error refreshing credentials: {e}")
                 return None
@@ -56,11 +67,15 @@ def get_google_credentials(user, db_user_id: int, db) -> Optional[Credentials]:
             return None
     return creds
 
+
 def get_calendar_service(creds: Credentials):
     """Builds the Google Calendar service from credentials."""
-    return build('calendar', 'v3', credentials=creds)
+    return build("calendar", "v3", credentials=creds)
 
-def get_calendar_events(service, time_min: Optional[str] = None, time_max: Optional[str] = None) -> list:
+
+def get_calendar_events(
+    service, time_min: str | None = None, time_max: str | None = None
+) -> list:
     """Gets events from the user's primary Google Calendar.
 
     Args:
@@ -72,20 +87,32 @@ def get_calendar_events(service, time_min: Optional[str] = None, time_max: Optio
         A list of calendar events.
     """
     if not time_min:
-        time_min = datetime.utcnow().isoformat() + 'Z'
+        time_min = datetime.utcnow().isoformat() + "Z"
     if not time_max:
-        time_max = (datetime.utcnow() + timedelta(days=7)).isoformat() + 'Z'
+        time_max = (datetime.utcnow() + timedelta(days=7)).isoformat() + "Z"
 
-    events_result = service.events().list(
-        calendarId='primary',
-        timeMin=time_min,
-        timeMax=time_max,
-        singleEvents=True,
-        orderBy='startTime'
-    ).execute()
-    return events_result.get('items', [])
+    events_result = (
+        service.events()
+        .list(
+            calendarId="primary",
+            timeMin=time_min,
+            timeMax=time_max,
+            singleEvents=True,
+            orderBy="startTime",
+        )
+        .execute()
+    )
+    return events_result.get("items", [])
 
-def create_calendar_event(service, summary: str, start_time: str, end_time: str, description: Optional[str] = None, attendees: Optional[List[str]] = None) -> dict:
+
+def create_calendar_event(
+    service,
+    summary: str,
+    start_time: str,
+    end_time: str,
+    description: str | None = None,
+    attendees: list[str] | None = None,
+) -> dict:
     """Creates a new event on the user's primary Google Calendar.
 
     Args:
@@ -100,15 +127,16 @@ def create_calendar_event(service, summary: str, start_time: str, end_time: str,
         The created event.
     """
     event = {
-        'summary': summary,
-        'description': description,
-        'start': {'dateTime': start_time, 'timeZone': 'UTC'},
-        'end': {'dateTime': end_time, 'timeZone': 'UTC'},
+        "summary": summary,
+        "description": description,
+        "start": {"dateTime": start_time, "timeZone": "UTC"},
+        "end": {"dateTime": end_time, "timeZone": "UTC"},
     }
     if attendees:
-        event['attendees'] = [{'email': email} for email in attendees]
+        event["attendees"] = [{"email": email} for email in attendees]
 
-    return service.events().insert(calendarId='primary', body=event).execute()
+    return service.events().insert(calendarId="primary", body=event).execute()
+
 
 def delete_calendar_event(service, event_id: str):
     """Deletes an event from the user's primary Google Calendar.
@@ -117,4 +145,4 @@ def delete_calendar_event(service, event_id: str):
         service: The Google Calendar service object.
         event_id: The ID of the event to delete.
     """
-    service.events().delete(calendarId='primary', eventId=event_id).execute()
+    service.events().delete(calendarId="primary", eventId=event_id).execute()

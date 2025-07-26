@@ -138,4 +138,4 @@ Required environment variables:
 ## Notes
 - **Never commit your `.env` or `firebase-service-account.json` to git!**
 - Update CORS origins in `main.py` for production.
-- The backend supports both Gmail and Calendar integrations with separate OAuth flows. 
+- The backend supports both Gmail and Calendar integrations with separate OAuth flows.

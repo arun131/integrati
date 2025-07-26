@@ -21,10 +21,10 @@ function LoginPage() {
                 try {
                     const decoded = jwtDecode(token);
                     const userEmail = decoded.sub || decoded.email || '';
-                    
+
                     // Login the user with the token
                     await login(token, userEmail);
-                    
+
                     // Navigate to dashboard - integrations will be loaded from backend API
                     navigate('/dashboard', { replace: true });
                 } catch (err) {
@@ -32,7 +32,7 @@ function LoginPage() {
                 }
             }
         };
-        
+
         handleToken();
     }, [location, login, navigate]);
 
@@ -66,7 +66,7 @@ function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
+
         try {
             if (isSignUp) {
                 await signUpWithEmail(email, password);
@@ -82,10 +82,10 @@ function LoginPage() {
     };
 
     return (
-        <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             minHeight: '100vh',
             backgroundColor: '#f5f5f5',
             fontFamily: 'Arial, sans-serif'
@@ -250,4 +250,4 @@ function LoginPage() {
     );
 }
 
-export default LoginPage; 
+export default LoginPage;

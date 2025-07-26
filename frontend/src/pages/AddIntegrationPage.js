@@ -83,15 +83,15 @@ function AddIntegrationPage() {
     };
 
     return (
-        <div style={{ 
-            padding: '20px', 
-            maxWidth: '800px', 
-            margin: 'auto', 
-            fontFamily: 'Arial, sans-serif' 
+        <div style={{
+            padding: '20px',
+            maxWidth: '800px',
+            margin: 'auto',
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -149,7 +149,7 @@ function AddIntegrationPage() {
                 <h2 style={{ color: '#333', marginBottom: '20px' }}>
                     Available Integrations
                 </h2>
-                
+
                 <div style={{
                     display: 'grid',
                     gap: '15px'
@@ -159,14 +159,14 @@ function AddIntegrationPage() {
                             key={integration.id}
                             onClick={() => handleIntegrationSelect(integration.id)}
                             style={{
-                                border: selectedIntegration === integration.id 
-                                    ? `2px solid ${integration.color}` 
+                                border: selectedIntegration === integration.id
+                                    ? `2px solid ${integration.color}`
                                     : '2px solid #e0e0e0',
                                 borderRadius: '10px',
                                 padding: '20px',
                                 cursor: 'pointer',
-                                backgroundColor: selectedIntegration === integration.id 
-                                    ? `${integration.color}10` 
+                                backgroundColor: selectedIntegration === integration.id
+                                    ? `${integration.color}10`
                                     : 'white',
                                 transition: 'all 0.2s ease'
                             }}
@@ -186,15 +186,15 @@ function AddIntegrationPage() {
                                     {integration.icon}
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <h3 style={{ 
-                                        margin: '0 0 5px 0', 
+                                    <h3 style={{
+                                        margin: '0 0 5px 0',
                                         color: '#333',
                                         fontSize: '18px'
                                     }}>
                                         {integration.name}
                                     </h3>
-                                    <p style={{ 
-                                        margin: '0', 
+                                    <p style={{
+                                        margin: '0',
                                         color: '#666',
                                         fontSize: '14px'
                                     }}>
@@ -264,4 +264,4 @@ function AddIntegrationPage() {
     );
 }
 
-export default AddIntegrationPage; 
+export default AddIntegrationPage;

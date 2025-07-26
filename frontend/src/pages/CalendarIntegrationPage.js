@@ -34,15 +34,15 @@ function CalendarIntegrationPage() {
     };
 
     return (
-        <div style={{ 
-            padding: '20px', 
-            maxWidth: '1000px', 
-            margin: 'auto', 
-            fontFamily: 'Arial, sans-serif' 
+        <div style={{
+            padding: '20px',
+            maxWidth: '1000px',
+            margin: 'auto',
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -84,9 +84,9 @@ function CalendarIntegrationPage() {
                 </div>
             </div>
 
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: '20px',
                 marginBottom: '30px'
             }}>
@@ -257,4 +257,4 @@ function CalendarIntegrationPage() {
     );
 }
 
-export default CalendarIntegrationPage; 
+export default CalendarIntegrationPage;

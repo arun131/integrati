@@ -27,7 +27,7 @@ function CreateEventPage() {
                 end_time: endTime,
                 attendees: attendees ? attendees.split(',').map(email => email.trim()) : []
             };
-            
+
             await api.post('/integrations/calendar/api/events', payload);
             setSuccess(true);
             setSummary('');
@@ -48,9 +48,9 @@ function CreateEventPage() {
 
     return (
         <div style={{ padding: '20px', maxWidth: '600px', margin: 'auto', fontFamily: 'Arial, sans-serif' }}>
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -71,11 +71,11 @@ function CreateEventPage() {
                 <h2 style={{ color: '#333', margin: '0' }}>Create New Event</h2>
             </div>
 
-            <form onSubmit={handleSubmit} style={{ 
-                border: '1px solid #ddd', 
-                padding: '20px', 
-                borderRadius: '8px', 
-                boxShadow: '0 2px 4px rgba(0,0,0,0.1)' 
+            <form onSubmit={handleSubmit} style={{
+                border: '1px solid #ddd',
+                padding: '20px',
+                borderRadius: '8px',
+                boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
             }}>
                 <div style={{ marginBottom: '15px' }}>
                     <label htmlFor="summary" style={{ display: 'block', marginBottom: '5px', fontWeight: 'bold' }}>Event Title:</label>
@@ -143,13 +143,13 @@ function CreateEventPage() {
                     <button
                         type="submit"
                         disabled={loading}
-                        style={{ 
-                            padding: '10px 20px', 
-                            backgroundColor: '#34a853', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: '5px', 
-                            cursor: 'pointer' 
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#34a853',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer'
                         }}
                     >
                         {loading ? 'Creating...' : 'Create Event'}
@@ -157,13 +157,13 @@ function CreateEventPage() {
                     <button
                         type="button"
                         onClick={handleBack}
-                        style={{ 
-                            padding: '10px 20px', 
-                            backgroundColor: '#6c757d', 
-                            color: 'white', 
-                            border: 'none', 
-                            borderRadius: '5px', 
-                            cursor: 'pointer' 
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#6c757d',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer'
                         }}
                     >
                         Cancel
@@ -174,4 +174,4 @@ function CreateEventPage() {
     );
 }
 
-export default CreateEventPage; 
+export default CreateEventPage;

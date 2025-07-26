@@ -3,4 +3,4 @@ build
 dist
 .dockerignore
 Dockerfile
-npm-debug.log 
+npm-debug.log

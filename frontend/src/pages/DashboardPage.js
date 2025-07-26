@@ -21,19 +21,19 @@ function DashboardPage() {
         try {
             // Add a longer delay to ensure backend has processed integration creation
             await new Promise(resolve => setTimeout(resolve, 1000));
-            
+
             // Debug: Check if we have a token
             const token = localStorage.getItem('jwt_token');
             console.log('Dashboard: JWT token exists:', !!token);
             console.log('Dashboard: User object:', user);
-            
+
             const response = await api.get('/api/integration/integrations');
             console.log('Dashboard: Integrations loaded:', response.data);
             setIntegrations(response.data);
         } catch (error) {
             console.error('Error loading integrations:', error);
             console.error('Error response:', error.response?.data);
-            
+
             // If we get 401, try again after a longer delay (for OAuth redirects)
             if (error.response?.status === 401) {
                 console.log('Got 401, retrying after longer delay...');
@@ -69,11 +69,11 @@ function DashboardPage() {
 
     if (loading) {
         return (
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                height: '100vh' 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh'
             }}>
                 <div>Loading...</div>
             </div>
@@ -81,16 +81,16 @@ function DashboardPage() {
     }
 
     return (
-        <div style={{ 
-            padding: '20px', 
-            maxWidth: '1200px', 
-            margin: 'auto', 
-            fontFamily: 'Arial, sans-serif' 
+        <div style={{
+            padding: '20px',
+            maxWidth: '1200px',
+            margin: 'auto',
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -120,9 +120,9 @@ function DashboardPage() {
             </div>
 
             <div style={{ marginBottom: '30px' }}>
-                <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     marginBottom: '20px'
                 }}>
@@ -284,4 +284,4 @@ const getIntegrationDescription = (type) => {
     }
 };
 
-export default DashboardPage; 
+export default DashboardPage;

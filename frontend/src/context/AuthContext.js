@@ -1,8 +1,8 @@
 import React, { createContext, useState, useContext, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { 
-  signInWithPopup, 
-  signInWithEmailAndPassword, 
+import {
+  signInWithPopup,
+  signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
@@ -23,7 +23,7 @@ export const AuthProvider = ({ children }) => {
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
             setUser(user);
-            
+
             // If we have a Firebase user but no JWT token, get one from backend
             if (user && !token) {
                 try {
@@ -44,7 +44,7 @@ export const AuthProvider = ({ children }) => {
                 } catch (error) {
                 }
             }
-            
+
             // Always set loading to false after first check
             setLoading(false);
             if (user || token) {
@@ -121,7 +121,7 @@ export const AuthProvider = ({ children }) => {
             await signOut(auth);
         } catch (error) {
         }
-        
+
         // Clear JWT token and email
         setToken(null);
         setUserEmail(null);
@@ -155,4 +155,4 @@ export const useAuth = () => {
         throw new Error('useAuth must be used within an AuthProvider');
     }
     return context;
-}; 
+};

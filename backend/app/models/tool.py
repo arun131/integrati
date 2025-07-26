@@ -1,19 +1,25 @@
-from sqlalchemy import Column, Integer, String, ForeignKey, DateTime
-from sqlalchemy.orm import relationship
 from datetime import datetime
-from app.database.connection import Base
+
 from pydantic import BaseModel
+from sqlalchemy import Column, DateTime, ForeignKey, Integer, String
+from sqlalchemy.orm import relationship
+
+from app.database.connection import Base
+
 
 # SQLAlchemy Model
 class UserTool(Base):
-    __tablename__ = 'user_tools'
+    __tablename__ = "user_tools"
     id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=False)
     integration_name = Column(String, nullable=False)
     tool_name = Column(String, nullable=False)
-    state = Column(String, nullable=False, default='enabled')  # enabled, verify, disabled
+    state = Column(
+        String, nullable=False, default="enabled"
+    )  # enabled, verify, disabled
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
 
 # Pydantic Models for API
 class UserToolBase(BaseModel):
@@ -21,8 +27,10 @@ class UserToolBase(BaseModel):
     tool_name: str
     state: str
 
+
 class UserToolCreate(UserToolBase):
     user_id: int
+
 
 class UserToolResponse(UserToolBase):
     id: int
@@ -31,4 +39,4 @@ class UserToolResponse(UserToolBase):
     updated_at: datetime
 
     class Config:
-        from_attributes = True 
+        from_attributes = True

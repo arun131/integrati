@@ -1,1 +1,1 @@
-# Common integrations utilities 
+# Common integrations utilities

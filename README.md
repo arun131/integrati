@@ -38,7 +38,7 @@ A simple Docker-based application to manage Gmail and Google Calendar integratio
    REACT_APP_FIREBASE_STORAGE_BUCKET=your-bucket.appspot.com
    REACT_APP_FIREBASE_MESSAGING_SENDER_ID=123456
    REACT_APP_FIREBASE_APP_ID=your-app-id
-   
+
    # Backend
    BACKEND_URL=http://localhost:8000
    ```

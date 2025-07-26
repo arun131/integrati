@@ -141,4 +141,4 @@ Required environment variables:
 - **Never commit your `.env` files to git!**
 - The frontend uses Firebase for authentication and Firestore for storing integration data
 - All API calls include JWT tokens automatically via Axios interceptors
-- Protected routes ensure users are authenticated before accessing features 
+- Protected routes ensure users are authenticated before accessing features

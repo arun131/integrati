@@ -7,4 +7,4 @@ httpx==0.25.2
 coverage==7.3.2
 
 # Linting and formatting
-ruff==0.3.0 
+ruff==0.3.0

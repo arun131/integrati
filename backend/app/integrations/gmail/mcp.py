@@ -1,23 +1,25 @@
 """
 This module contains the MCP server for the Gmail integration.
 """
-import contextlib
-import logging
+
 from collections.abc import AsyncIterator
+import contextlib
+import json
+import logging
 
 import click
-import mcp.types as types
-import uvicorn
 from mcp.server.lowlevel import Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
+import mcp.types as types
 from sqlalchemy.orm import Session
 from starlette.applications import Starlette
 from starlette.routing import Mount
 from starlette.types import Receive, Scope, Send
+import uvicorn
 
+from app.crud.user import get_user_by_id
 from app.database.connection import SessionLocal
 from app.models.user import UserInDB
-from app.crud.user import get_user_by_id
 
 from .tools import (
     get_gmail_service,
@@ -26,9 +28,9 @@ from .tools import (
     search_gmail_messages,
     send_gmail_message,
 )
-import json
 
 logger = logging.getLogger(__name__)
+
 
 def get_db():
     """Create a new database session."""
@@ -61,15 +63,23 @@ def main(port: int, log_level: str):
         db: Session = next(get_db())
         user_id = arguments.pop("user_id", None)
         if not user_id:
-            return [types.TextContent(type="text", text="user_id is a required argument")]
+            return [
+                types.TextContent(type="text", text="user_id is a required argument")
+            ]
 
         user = get_user_by_id(db, user_id)
         if not user:
-            return [types.TextContent(type="text", text=f"User with id {user_id} not found")]
+            return [
+                types.TextContent(type="text", text=f"User with id {user_id} not found")
+            ]
 
         creds = get_google_credentials(user, user.id, db)
         if not creds:
-            return [types.TextContent(type="text", text="Could not refresh Google credentials.")]
+            return [
+                types.TextContent(
+                    type="text", text="Could not refresh Google credentials."
+                )
+            ]
 
         service = get_gmail_service(creds)
 
@@ -141,7 +151,9 @@ def main(port: int, log_level: str):
 
     session_manager = StreamableHTTPSessionManager(app=app)
 
-    async def handle_streamable_http(scope: Scope, receive: Receive, send: Send) -> None:
+    async def handle_streamable_http(
+        scope: Scope, receive: Receive, send: Send
+    ) -> None:
         """Handle streamable HTTP connections."""
         await session_manager.handle_request(scope, receive, send)
 

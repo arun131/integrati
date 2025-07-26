@@ -1,6 +1,6 @@
 services:
   frontend:
-    build: 
+    build:
       context: ./frontend
       args:
         - REACT_APP_FIREBASE_API_KEY=${REACT_APP_FIREBASE_API_KEY}
@@ -50,4 +50,4 @@ services:
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     volumes:
-      - ./backend:/app 
+      - ./backend:/app

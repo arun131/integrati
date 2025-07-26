@@ -15,30 +15,30 @@ on:
 jobs:
   test:
     runs-on: ubuntu-latest
-    
+
     steps:
     - name: Checkout code
       uses: actions/checkout@v4
-      
+
     - name: Setup Node.js
       uses: actions/setup-node@v4
       with:
         node-version: '18'
         cache: 'npm'
         cache-dependency-path: frontend/package-lock.json
-        
+
     - name: Install dependencies
       working-directory: ./frontend
       run: npm ci
-      
+
     - name: Run linting
       working-directory: ./frontend
       run: npm run lint
-      
+
     - name: Run tests
       working-directory: ./frontend
       run: npm test -- --coverage --watchAll=false
-      
+
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v3
       with:
@@ -46,7 +46,7 @@ jobs:
         flags: frontend
         name: frontend-coverage
         fail_ci_if_error: false
-        
+
     - name: Upload test results
       uses: actions/upload-artifact@v3
       if: always()
@@ -54,4 +54,4 @@ jobs:
         name: frontend-test-results
         path: |
           frontend/coverage/
-        retention-days: 30 
+        retention-days: 30

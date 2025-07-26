@@ -1,14 +1,17 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+
 class Settings(BaseSettings):
     # Google OAuth credentials
     GOOGLE_CLIENT_ID: str
     GOOGLE_CLIENT_SECRET: str
-    GOOGLE_REDIRECT_URI: str # This will be your backend's /callback URL
+    GOOGLE_REDIRECT_URI: str  # This will be your backend's /callback URL
 
     # Integration-specific redirect URIs
     GMAIL_REDIRECT_URI: str = "http://localhost:8000/integrations/gmail/auth/callback"
-    CALENDAR_REDIRECT_URI: str = "http://localhost:8000/integrations/calendar/auth/callback"
+    CALENDAR_REDIRECT_URI: str = (
+        "http://localhost:8000/integrations/calendar/auth/callback"
+    )
 
     # JWT settings
     SECRET_KEY: str
@@ -16,11 +19,12 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
     # Database settings
-    DATABASE_URL: str = "sqlite:///./app.db" # Relative path within container
+    DATABASE_URL: str = "sqlite:///./app.db"  # Relative path within container
 
     # CORS settings (add your Vercel frontend URL here in production)
-    FRONTEND_URL: str = "http://localhost:3000" # For local development
+    FRONTEND_URL: str = "http://localhost:3000"  # For local development
 
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")
 
-settings = Settings() 
+
+settings = Settings()

@@ -4,13 +4,17 @@ repos:
     hooks:
       - id: ruff
         args: [--fix]
+        exclude: ^(frontend/node_modules|backend/node_modules)
       - id: ruff-format
+        exclude: ^(frontend/node_modules|backend/node_modules)
 
   - repo: https://github.com/pre-commit/pre-commit-hooks
     rev: v4.5.0
     hooks:
       - id: trailing-whitespace
+        exclude: ^(frontend/node_modules|backend/node_modules)
       - id: end-of-file-fixer
+        exclude: ^(frontend/node_modules|backend/node_modules)
       - id: check-yaml
       - id: check-added-large-files
       - id: check-merge-conflict
@@ -24,5 +28,5 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        args: [tests/unit/]
-        working_dir: backend/ 
+        args: [backend/tests/unit/, -v]
+        working_dir: backend

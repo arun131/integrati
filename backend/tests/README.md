@@ -211,4 +211,4 @@ When adding new features:
 1. Write tests first (TDD approach)
 2. Ensure all tests pass
 3. Maintain good test coverage
-4. Update this README if needed 
+4. Update this README if needed
