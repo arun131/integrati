@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import UserInDB
-from .google_auth import get_google_credentials, get_gmail_service, search_gmail_messages, get_last_received_email, send_gmail_message
+from .tools import get_google_credentials, get_gmail_service, search_gmail_messages, get_last_received_email, send_gmail_message
 from pydantic import BaseModel
 from typing import List, Optional
 
@@ -33,7 +33,7 @@ async def search_emails(
     current_user: UserInDB = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    creds = get_google_credentials(current_user.dict(), current_user.id, db)
+    creds = get_google_credentials(current_user, current_user.id, db)
     if not creds:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh Google credentials.")
     service = get_gmail_service(creds)
@@ -45,7 +45,7 @@ async def get_last_email(
     current_user: UserInDB = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    creds = get_google_credentials(current_user.dict(), current_user.id, db)
+    creds = get_google_credentials(current_user, current_user.id, db)
     if not creds:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh Google credentials.")
     service = get_gmail_service(creds)
@@ -58,7 +58,7 @@ async def send_email(
     current_user: UserInDB = Depends(get_current_user),
     db: Session = Depends(get_db)
 ):
-    creds = get_google_credentials(current_user.dict(), current_user.id, db)
+    creds = get_google_credentials(current_user, current_user.id, db)
     if not creds:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh Google credentials.")
     service = get_gmail_service(creds)

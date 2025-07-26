@@ -158,3 +158,11 @@ docker run --rm -v $(pwd)/frontend:/app -w /app -p 3000:3000 node:18 npm start
 ## License
 
 This project is licensed under the MIT License.
+
+
+
+npx @modelcontextprotocol/inspector
+
+Issues: loosing auth
+frontend is now broken 
+mcp returns a success even after not recieving message

@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from app.database.connection import get_db
 from app.core.dependencies import get_current_user
 from app.models.user import UserInDB
-from .google_auth import get_google_credentials, get_calendar_service
+from .tools import get_google_credentials, get_calendar_service, get_calendar_events, create_calendar_event, delete_calendar_event
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime, timedelta
@@ -32,26 +32,12 @@ async def get_events(
     db: Session = Depends(get_db)
 ):
     try:
-        creds = get_google_credentials(current_user.dict(), current_user.id, db)
+        creds = get_google_credentials(current_user, current_user.id, db)
         if not creds:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh Google credentials.")
         
         service = get_calendar_service(creds)
-        
-        # Get events for the next 7 days
-        now = datetime.utcnow()
-        time_min = now.isoformat() + 'Z'
-        time_max = (now + timedelta(days=7)).isoformat() + 'Z'
-        
-        events_result = service.events().list(
-            calendarId='primary',
-            timeMin=time_min,
-            timeMax=time_max,
-            singleEvents=True,
-            orderBy='startTime'
-        ).execute()
-        
-        events = events_result.get('items', [])
+        events = get_calendar_events(service)
         
         formatted_events = []
         for event in events:
@@ -79,32 +65,20 @@ async def create_event(
     db: Session = Depends(get_db)
 ):
     try:
-        creds = get_google_credentials(current_user.dict(), current_user.id, db)
+        creds = get_google_credentials(current_user, current_user.id, db)
         if not creds:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh Google credentials.")
         
         service = get_calendar_service(creds)
         
-        event = {
-            'summary': request.summary,
-            'description': request.description,
-            'start': {
-                'dateTime': request.start_time,
-                'timeZone': 'UTC',
-            },
-            'end': {
-                'dateTime': request.end_time,
-                'timeZone': 'UTC',
-            },
-        }
-        
-        if request.attendees:
-            event['attendees'] = [{'email': email} for email in request.attendees]
-        
-        event_result = service.events().insert(
-            calendarId='primary',
-            body=event
-        ).execute()
+        event_result = create_calendar_event(
+            service=service,
+            summary=request.summary,
+            description=request.description,
+            start_time=request.start_time,
+            end_time=request.end_time,
+            attendees=request.attendees
+        )
         
         return EventResponse(
             id=event_result['id'],
@@ -125,12 +99,12 @@ async def delete_event(
     db: Session = Depends(get_db)
 ):
     try:
-        creds = get_google_credentials(current_user.dict(), current_user.id, db)
+        creds = get_google_credentials(current_user, current_user.id, db)
         if not creds:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Could not refresh Google credentials.")
         
         service = get_calendar_service(creds)
-        service.events().delete(calendarId='primary', eventId=event_id).execute()
+        delete_calendar_event(service, event_id)
         
         return {"message": "Event deleted successfully"}
     except Exception as e:

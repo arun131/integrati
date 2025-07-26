@@ -240,3 +240,5 @@ __marimo__/
 backend/app/credentials.json
 
 backend/firebase-service-account.json
+
+# python-sdk/

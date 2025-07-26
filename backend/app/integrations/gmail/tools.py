@@ -1,68 +1,57 @@
-import os
-from google_auth_oauthlib.flow import Flow
-from google.auth.transport.requests import Request
-from google.oauth2.credentials import Credentials
-from googleapiclient.discovery import build
-from datetime import datetime, timedelta
-from typing import Optional
+"""
+This module contains the core functions for the Gmail integration.
+"""
 import base64
 from email.mime.text import MIMEText
+from typing import Optional
+
+from google.oauth2.credentials import Credentials
+from googleapiclient.discovery import build
 
 from app.core.config import settings
 from app.crud.user import update_user_tokens
-from .config import GMAIL_REDIRECT_URI
 
-SCOPES = [
-    'openid',
-    'https://www.googleapis.com/auth/userinfo.email',
-    'https://www.googleapis.com/auth/userinfo.profile',
-    'https://www.googleapis.com/auth/gmail.readonly',
-    'https://www.googleapis.com/auth/gmail.send',
-    'https://www.googleapis.com/auth/gmail.compose',
-]
-
-CLIENT_SECRETS_FILE = "./app/credentials.json"
-
-def get_google_auth_flow():
-    flow = Flow.from_client_secrets_file(
-        CLIENT_SECRETS_FILE,
-        scopes=SCOPES,
-        redirect_uri=GMAIL_REDIRECT_URI
-    )
-    return flow
-
-def get_google_credentials(token_data: dict, db_user_id: int, db):
+def get_google_credentials(user, db_user_id: int, db) -> Optional[Credentials]:
+    """Gets Google credentials from a user object."""
     creds = None
-    if token_data:
-        try:
-            creds = Credentials(
-                token=token_data.get('access_token'),
-                refresh_token=token_data.get('refresh_token'),
-                token_uri='https://oauth2.googleapis.com/token',
-                client_id=settings.GOOGLE_CLIENT_ID,
-                client_secret=settings.GOOGLE_CLIENT_SECRET,
-                scopes=SCOPES
-            )
-        except Exception as e:
-            return None
+    if user and user.access_token:
+        user_info = {
+            "token": user.access_token,
+            "refresh_token": user.refresh_token,
+            "token_uri": "https://oauth2.googleapis.com/token",
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "scopes": user.scope.split(' ') if user.scope else [],
+        }
+        creds = Credentials.from_authorized_user_info(info=user_info)
+
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
+                from google.auth.transport.requests import Request
                 creds.refresh(Request())
-                from app.crud.user import get_user_by_google_id
-                db_user = get_user_by_google_id(db, token_data['google_id'])
-                if db_user:
-                    update_user_tokens(db, db_user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
-            except Exception as e:
+                if user:
+                    update_user_tokens(db, user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
+            except Exception:
                 return None
         else:
             return None
     return creds
 
 def get_gmail_service(creds: Credentials):
+    """Builds the Gmail service from credentials."""
     return build('gmail', 'v1', credentials=creds)
 
-def search_gmail_messages(service, query: str):
+def search_gmail_messages(service, query: str) -> list:
+    """Searches for emails in the user's Gmail account.
+
+    Args:
+        service: The Gmail service object.
+        query: The search query.
+
+    Returns:
+        A list of matching emails.
+    """
     try:
         results = service.users().messages().list(userId='me', q=query, maxResults=10).execute()
         messages = results.get('messages', [])
@@ -92,10 +81,18 @@ def search_gmail_messages(service, query: str):
                 'body': body
             })
         return parsed_messages
-    except Exception as e:
+    except Exception:
         return []
 
-def get_last_received_email(service):
+def get_last_received_email(service) -> Optional[dict]:
+    """Gets the last received email from the user's Gmail account.
+
+    Args:
+        service: The Gmail service object.
+
+    Returns:
+        The last received email, or None if not found.
+    """
     try:
         results = service.users().messages().list(userId='me', maxResults=1).execute()
         messages = results.get('messages', [])
@@ -124,10 +121,23 @@ def get_last_received_email(service):
                 'body': body
             }
         return None
-    except Exception as e:
+    except Exception:
         return None
 
-def send_gmail_message(service, sender_email: str, to_email: str, subject: str, message_text: str, thread_id: Optional[str] = None):
+def send_gmail_message(service, sender_email: str, to_email: str, subject: str, message_text: str, thread_id: Optional[str] = None) -> Optional[dict]:
+    """Sends an email using the user's Gmail account.
+
+    Args:
+        service: The Gmail service object.
+        sender_email: The sender's email address.
+        to_email: The recipient's email address.
+        subject: The email subject.
+        message_text: The email body.
+        thread_id: The ID of the thread to reply to, if any.
+
+    Returns:
+        The sent message, or None on failure.
+    """
     try:
         message = MIMEText(message_text)
         message['to'] = to_email
@@ -142,5 +152,5 @@ def send_gmail_message(service, sender_email: str, to_email: str, subject: str, 
             body['threadId'] = thread_id
         send_message = service.users().messages().send(userId='me', body=body).execute()
         return send_message
-    except Exception as e:
-        return None 
+    except Exception:
+        return None

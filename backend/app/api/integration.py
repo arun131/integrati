@@ -54,33 +54,12 @@ def set_tool_state(integration_name: str, tool_name: str, state: str, current_us
 def list_pending_actions(current_user: UserInDB = Depends(get_current_user), db: Session = Depends(get_db)):
     return get_pending_actions(db, current_user.id)
 
-from app.mcp.instance import mcp
+
 
 @router.post('/pending-actions/{action_id}/approve', response_model=PendingActionResponse)
 def approve_pending_action(action_id: int, current_user: UserInDB = Depends(get_current_user), db: Session = Depends(get_db)):
+    """Approves a pending action. Execution logic removed since FastMCP was deprecated."""
     action = update_pending_action_status(db, action_id, 'approved')
-    # Execute the tool if action is present and approved
-    if action and action.status == 'approved':
-        # Dynamically call the tool using MCP registry
-        integration = action.integration_name
-        tool = action.tool_name
-        params = action.parameters or {}
-        # Insert user_id if not present
-        if 'user_id' not in params:
-            params['user_id'] = action.user_id
-        # Find the tool function
-        mcp_tool = getattr(mcp.tools.get(integration, {}), tool, None)
-        if mcp_tool is None:
-            # fallback: try mcp.tools[tool]
-            mcp_tool = mcp.tools.get(tool)
-        if mcp_tool:
-            try:
-                result = mcp_tool(**params)
-                action.result = result if isinstance(result, dict) else {'result': result}
-            except Exception as e:
-                action.result = {'error': str(e)}
-        db.commit()
-        db.refresh(action)
     return action
 
 @router.post('/pending-actions/{action_id}/reject', response_model=PendingActionResponse)
