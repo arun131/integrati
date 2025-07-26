@@ -12,28 +12,47 @@ from app.crud.user import update_user_tokens
 
 def get_google_credentials(user, db_user_id: int, db) -> Optional[Credentials]:
     """Gets Google credentials from a user object."""
+    # Get the actual SQLAlchemy user from database
+    from app.crud.user import get_user_by_id
+    db_user = get_user_by_id(db, db_user_id)
+    if not db_user:
+        print(f"User not found in database for ID: {db_user_id}")
+        return None
+
     creds = None
-    if user and user.access_token:
+    if db_user and db_user.access_token:
+        print(f"Creating credentials for user: {db_user.email}")
+        print(f"User scopes: {db_user.scope}")
+        # Use the scopes that were granted during OAuth
+        scopes = db_user.scope.split(' ') if db_user.scope else []
+        print(f"Parsed scopes: {scopes}")
         user_info = {
-            "token": user.access_token,
-            "refresh_token": user.refresh_token,
+            "token": db_user.access_token,
+            "refresh_token": db_user.refresh_token,
             "token_uri": "https://oauth2.googleapis.com/token",
             "client_id": settings.GOOGLE_CLIENT_ID,
             "client_secret": settings.GOOGLE_CLIENT_SECRET,
-            "scopes": user.scope.split(' ') if user.scope else [],
+            "scopes": scopes,
         }
         creds = Credentials.from_authorized_user_info(info=user_info)
+        print(f"Credentials created: {creds is not None}")
+        print(f"Credentials valid: {creds.valid if creds else False}")
+        print(f"Credentials expired: {creds.expired if creds else False}")
 
     if not creds or not creds.valid:
         if creds and creds.expired and creds.refresh_token:
             try:
+                print("Attempting to refresh credentials...")
                 from google.auth.transport.requests import Request
                 creds.refresh(Request())
-                if user:
-                    update_user_tokens(db, user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
-            except Exception:
+                print("Credentials refreshed successfully")
+                if db_user:
+                    update_user_tokens(db, db_user, creds.token, creds.refresh_token, creds.expiry, " ".join(creds.scopes))
+            except Exception as e:
+                print(f"Error refreshing credentials: {e}")
                 return None
         else:
+            print("No valid credentials or refresh token available")
             return None
     return creds
 

@@ -2,9 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { jwtDecode } from 'jwt-decode';
-import { initializeApp } from 'firebase/app';
-import { getFirestore, collection, doc, setDoc } from 'firebase/firestore';
-import { getAuth } from 'firebase/auth';
 
 function LoginPage() {
     const { signInWithGoogle, signInWithGithub, signInWithEmail, signUpWithEmail, login } = useAuth();
@@ -25,53 +22,11 @@ function LoginPage() {
                     const decoded = jwtDecode(token);
                     const userEmail = decoded.sub || decoded.email || '';
                     
-                    // First, login the user
+                    // Login the user with the token
                     await login(token, userEmail);
                     
-                    // Then handle the integration if present
-                    const integrationType = queryParams.get('integration');
-                    if (integrationType) {
-                        try {
-                            // Initialize Firebase if not already initialized
-                            let app;
-                            try {
-                                app = window.firebase.app();
-                            } catch (e) {
-                                const firebaseConfig = {
-                                    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-                                    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-                                    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-                                    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-                                    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-                                    appId: process.env.REACT_APP_FIREBASE_APP_ID
-                                };
-                                app = initializeApp(firebaseConfig);
-                            }
-                            const db = getFirestore(app);
-                            const auth = getAuth(app);
-                            await new Promise((resolve) => {
-                                const unsubscribe = auth.onAuthStateChanged((user) => {
-                                    unsubscribe();
-                                    resolve(user);
-                                });
-                            });
-                            const currentUser = auth.currentUser;
-                            if (currentUser) {
-                                const integrationData = {
-                                    userId: currentUser.uid,
-                                    type: integrationType,
-                                    status: 'active',
-                                    createdAt: new Date().toISOString(),
-                                    debug_timestamp: Date.now()
-                                };
-                                const docRef = doc(collection(db, 'integrations'));
-                                await setDoc(docRef, integrationData);
-                                navigate('/dashboard', { replace: true });
-                            }
-                        } catch (e) {
-                            // Swallow error or set error state if needed
-                        }
-                    }
+                    // Navigate to dashboard - integrations will be loaded from backend API
+                    navigate('/dashboard', { replace: true });
                 } catch (err) {
                     setError('Invalid token received from backend.');
                 }

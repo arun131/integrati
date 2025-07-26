@@ -138,10 +138,17 @@ async def gmail_callback(request: Request, db: Session = Depends(get_db)):
         
         # Check if user exists in database
         db_user = get_user_by_google_id(db, google_id=google_id)
-        current_scopes = " ".join(SCOPES)
+        new_scopes = set(SCOPES)
         
         if db_user:
-            # Update existing user with new tokens
+            # Merge new scopes with existing ones
+            existing_scopes = set(db_user.scope.split(' ') if db_user.scope else [])
+            merged_scopes = existing_scopes.union(new_scopes)
+            current_scopes = " ".join(merged_scopes)
+            print(f"Existing scopes: {existing_scopes}")
+            print(f"New scopes: {new_scopes}")
+            print(f"Merged scopes: {merged_scopes}")
+            # Update existing user with new tokens and merged scopes
             updated_user = update_user_tokens(
                 db, db_user, credentials.token, credentials.refresh_token,
                 token_expiry, current_scopes
@@ -150,6 +157,13 @@ async def gmail_callback(request: Request, db: Session = Depends(get_db)):
             # Check if user exists with this email
             existing_email_user = get_user_by_email(db, email=email)
             if existing_email_user:
+                # Merge new scopes with existing ones
+                existing_scopes = set(existing_email_user.scope.split(' ') if existing_email_user.scope else [])
+                merged_scopes = existing_scopes.union(new_scopes)
+                current_scopes = " ".join(merged_scopes)
+                print(f"Existing scopes: {existing_scopes}")
+                print(f"New scopes: {new_scopes}")
+                print(f"Merged scopes: {merged_scopes}")
                 # Update existing user with new google_id and tokens
                 existing_email_user.google_id = google_id
                 updated_user = update_user_tokens(
@@ -157,7 +171,8 @@ async def gmail_callback(request: Request, db: Session = Depends(get_db)):
                     token_expiry, current_scopes
                 )
             else:
-                # Create new user
+                # Create new user with just the new scopes
+                current_scopes = " ".join(SCOPES)
                 new_user = UserCreate(
                     google_id=google_id,
                     email=email,

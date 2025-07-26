@@ -19,10 +19,33 @@ function DashboardPage() {
 
     const loadUserIntegrations = async () => {
         try {
+            // Add a longer delay to ensure backend has processed integration creation
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            
+            // Debug: Check if we have a token
+            const token = localStorage.getItem('jwt_token');
+            console.log('Dashboard: JWT token exists:', !!token);
+            console.log('Dashboard: User object:', user);
+            
             const response = await api.get('/api/integration/integrations');
+            console.log('Dashboard: Integrations loaded:', response.data);
             setIntegrations(response.data);
         } catch (error) {
             console.error('Error loading integrations:', error);
+            console.error('Error response:', error.response?.data);
+            
+            // If we get 401, try again after a longer delay (for OAuth redirects)
+            if (error.response?.status === 401) {
+                console.log('Got 401, retrying after longer delay...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                try {
+                    const retryResponse = await api.get('/api/integration/integrations');
+                    console.log('Dashboard: Integrations loaded on retry:', retryResponse.data);
+                    setIntegrations(retryResponse.data);
+                } catch (retryError) {
+                    console.error('Retry also failed:', retryError);
+                }
+            }
         } finally {
             setLoading(false);
         }

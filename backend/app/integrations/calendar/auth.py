@@ -9,12 +9,17 @@ from app.models.user import UserCreate
 from ..common.google_auth import get_google_auth_flow
 from datetime import timedelta
 from googleapiclient.discovery import build
+from google.oauth2.credentials import Credentials
+import requests
 
 router = APIRouter()
 
 SCOPES = [
     'https://www.googleapis.com/auth/calendar',
-    'https://www.googleapis.com/auth/calendar.events'
+    'https://www.googleapis.com/auth/calendar.events',
+    'openid',
+    'https://www.googleapis.com/auth/userinfo.email',
+    'https://www.googleapis.com/auth/userinfo.profile'
 ]
 
 @router.get("/login")
@@ -58,56 +63,121 @@ async def calendar_callback(request: Request, db: Session = Depends(get_db)):
         )
     
     try:
-        # Exchange authorization code for tokens
-        flow = get_google_auth_flow(redirect_uri=settings.CALENDAR_REDIRECT_URI, scopes=SCOPES)
+        print(f"Received authorization code: {code[:20]}...")
         
-        # Set the redirect URI explicitly on the flow for token exchange
-        flow.redirect_uri = settings.CALENDAR_REDIRECT_URI
+        # Exchange authorization code for tokens using direct HTTP request
+        token_url = "https://oauth2.googleapis.com/token"
+        token_data = {
+            "client_id": settings.GOOGLE_CLIENT_ID,
+            "client_secret": settings.GOOGLE_CLIENT_SECRET,
+            "code": code,
+            "grant_type": "authorization_code",
+            "redirect_uri": settings.CALENDAR_REDIRECT_URI
+        }
         
-        # Fetch the token
-        flow.fetch_token(code=code)
-        credentials = flow.credentials
+        print(f"Exchanging code for tokens with redirect_uri: {settings.CALENDAR_REDIRECT_URI}")
         
-        if not credentials or not credentials.token:
+        response = requests.post(token_url, data=token_data)
+        print(f"Token exchange response status: {response.status_code}")
+        
+        if response.status_code != 200:
+            print(f"Token exchange failed: {response.text}")
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Failed to obtain access token from Google"
+                detail=f"Failed to exchange authorization code: {response.text}"
             )
         
-        # Get user info from Google
-        userinfo_service = build('oauth2', 'v2', credentials=credentials)
-        user_info = userinfo_service.userinfo().get().execute()
+        token_info = response.json()
+        print(f"Token exchange successful")
+        print(f"Token response: {token_info}")
+        
+        # Calculate token expiry from expires_in
+        from datetime import datetime, timedelta
+        token_expiry = None
+        if token_info.get("expires_in"):
+            token_expiry = datetime.utcnow() + timedelta(seconds=token_info.get("expires_in"))
+        
+        # Create credentials object
+        credentials = Credentials(
+            token=token_info.get("access_token"),
+            refresh_token=token_info.get("refresh_token"),
+            token_uri="https://oauth2.googleapis.com/token",
+            client_id=settings.GOOGLE_CLIENT_ID,
+            client_secret=settings.GOOGLE_CLIENT_SECRET,
+            scopes=SCOPES
+        )
+        
+        print(f"Credentials created with access token: {credentials.token[:20] if credentials.token else 'None'}...")
+        print(f"Token scopes: {token_info.get('scope', 'No scope in response')}")
+        print(f"Token expiry: {token_expiry}")
+        
+        # Get user info from Google using direct HTTP request
+        headers = {
+            'Authorization': f'Bearer {credentials.token}',
+            'Content-Type': 'application/json'
+        }
+        
+        print(f"Making userinfo request with headers: {headers}")
+        userinfo_response = requests.get('https://www.googleapis.com/oauth2/v2/userinfo', headers=headers)
+        print(f"Userinfo response status: {userinfo_response.status_code}")
+        print(f"Userinfo response headers: {dict(userinfo_response.headers)}")
+        
+        if userinfo_response.status_code != 200:
+            print(f"Userinfo request failed: {userinfo_response.text}")
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"Failed to get user info: {userinfo_response.text}"
+            )
+        
+        user_info = userinfo_response.json()
         google_id = user_info['id']
         email = user_info['email']
         
+        print(f"User info obtained: {email}")
+        
         # Check if user exists in database
         db_user = get_user_by_google_id(db, google_id=google_id)
-        current_scopes = " ".join(flow.credentials.scopes) if flow.credentials.scopes else ""
+        new_scopes = set(SCOPES)
         
         if db_user:
-            # Update existing user with new tokens
+            # Merge new scopes with existing ones
+            existing_scopes = set(db_user.scope.split(' ') if db_user.scope else [])
+            merged_scopes = existing_scopes.union(new_scopes)
+            current_scopes = " ".join(merged_scopes)
+            print(f"Existing scopes: {existing_scopes}")
+            print(f"New scopes: {new_scopes}")
+            print(f"Merged scopes: {merged_scopes}")
+            # Update existing user with new tokens and merged scopes
             updated_user = update_user_tokens(
                 db, db_user, credentials.token, credentials.refresh_token,
-                credentials.expiry, current_scopes
+                token_expiry, current_scopes
             )
         else:
             # Check if user exists with this email
             existing_email_user = get_user_by_email(db, email=email)
             if existing_email_user:
+                # Merge new scopes with existing ones
+                existing_scopes = set(existing_email_user.scope.split(' ') if existing_email_user.scope else [])
+                merged_scopes = existing_scopes.union(new_scopes)
+                current_scopes = " ".join(merged_scopes)
+                print(f"Existing scopes: {existing_scopes}")
+                print(f"New scopes: {new_scopes}")
+                print(f"Merged scopes: {merged_scopes}")
                 # Update existing user with new google_id and tokens
                 existing_email_user.google_id = google_id
                 updated_user = update_user_tokens(
                     db, existing_email_user, credentials.token, credentials.refresh_token,
-                    credentials.expiry, current_scopes
+                    token_expiry, current_scopes
                 )
             else:
-                # Create new user
+                # Create new user with just the new scopes
+                current_scopes = " ".join(SCOPES)
                 new_user = UserCreate(
                     google_id=google_id,
                     email=email,
                     access_token=credentials.token,
                     refresh_token=credentials.refresh_token,
-                    token_expiry=credentials.expiry.isoformat(),
+                    token_expiry=token_expiry.isoformat() if token_expiry else None,
                     scope=current_scopes
                 )
                 updated_user = create_user(db, new_user)
