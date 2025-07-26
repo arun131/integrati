@@ -6,6 +6,10 @@ class Settings(BaseSettings):
     GOOGLE_CLIENT_SECRET: str
     GOOGLE_REDIRECT_URI: str # This will be your backend's /callback URL
 
+    # Integration-specific redirect URIs
+    GMAIL_REDIRECT_URI: str = "http://localhost:8000/integrations/gmail/auth/callback"
+    CALENDAR_REDIRECT_URI: str = "http://localhost:8000/integrations/calendar/auth/callback"
+
     # JWT settings
     SECRET_KEY: str
     ALGORITHM: str = "HS256"

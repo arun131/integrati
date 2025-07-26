@@ -25,7 +25,7 @@ def create_user(db: Session, user: UserCreate):
 def update_user_tokens(db: Session, user: User, access_token: str, refresh_token: str, token_expiry: datetime, scope: str):
     user.access_token = access_token
     user.refresh_token = refresh_token
-    user.token_expiry = token_expiry.isoformat()
+    user.token_expiry = token_expiry.isoformat() if token_expiry else None
     user.scope = scope
     db.add(user)
     db.commit()

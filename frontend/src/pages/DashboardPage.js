@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import api from '../services/api';
 
 function DashboardPage() {
     const { user, logout } = useAuth();
@@ -11,31 +10,17 @@ function DashboardPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Wait for Firebase Auth to initialize
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                loadUserIntegrations();
-            } else {
-                setLoading(false);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
+        if (user) {
+            loadUserIntegrations();
+        } else {
+            setLoading(false);
+        }
+    }, [user]);
 
     const loadUserIntegrations = async () => {
         try {
-            const integrationsRef = collection(db, 'integrations');
-            const q = query(integrationsRef, where('userId', '==', user.uid));
-            
-            const querySnapshot = await getDocs(q);
-            
-            const userIntegrations = [];
-            querySnapshot.forEach((doc) => {
-                userIntegrations.push({ id: doc.id, ...doc.data() });
-            });
-            
-            setIntegrations(userIntegrations);
+            const response = await api.get('/api/integration/integrations');
+            setIntegrations(response.data);
         } catch (error) {
             console.error('Error loading integrations:', error);
         } finally {
