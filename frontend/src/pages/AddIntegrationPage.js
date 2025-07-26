@@ -1,11 +1,7 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, addDoc } from 'firebase/firestore';
-import { db } from '../firebase';
 
 function AddIntegrationPage() {
-    const { user } = useAuth();
     const navigate = useNavigate();
     const [selectedIntegration, setSelectedIntegration] = useState('');
     const [loading, setLoading] = useState(false);
@@ -44,15 +40,24 @@ function AddIntegrationPage() {
         setSuccess('');
 
         try {
-            // Redirect to backend OAuth endpoint for the selected integration
+            // Use localhost for local Docker testing; change to 'http://backend:8000' for Docker Compose networking
             let backendUrl = process.env.REACT_APP_BACKEND_URL || 'http://localhost:8000';
+            console.log('[AddIntegrationPage] Using backendUrl:', backendUrl);
+            console.log('[AddIntegrationPage] Selected integration:', selectedIntegration);
+            // Remove trailing slash and any trailing '/integrations' from backendUrl
+            backendUrl = backendUrl.replace(/\/?integrations\/?$/, '');
+            let redirectUrl = '';
             if (selectedIntegration === 'gmail') {
-                window.location.href = `${backendUrl}/integrations/gmail/auth/login`;
+                redirectUrl = `${backendUrl}/integrations/gmail/auth/login`;
             } else if (selectedIntegration === 'calendar') {
-                window.location.href = `${backendUrl}/integrations/calendar/auth/login`;
+                redirectUrl = `${backendUrl}/integrations/calendar/auth/login`;
             } else {
                 setError('Unknown integration type.');
+                return;
             }
+            // Debug: Log the final redirect URL
+            console.log('[AddIntegrationPage] Redirecting to:', redirectUrl);
+            window.location.href = redirectUrl;
         } catch (error) {
             console.error('Error adding integration:', error);
             setError('Failed to add integration. Please try again.');
@@ -61,28 +66,20 @@ function AddIntegrationPage() {
         }
     };
 
-    const getIntegrationName = (type) => {
-        switch (type) {
-            case 'gmail': return 'Gmail';
-            case 'calendar': return 'Google Calendar';
-            default: return 'Integration';
-        }
-    };
-
     const handleBack = () => {
         navigate('/dashboard');
     };
 
     return (
-        <div style={{ 
-            padding: '20px', 
-            maxWidth: '800px', 
-            margin: 'auto', 
-            fontFamily: 'Arial, sans-serif' 
+        <div style={{
+            padding: '20px',
+            maxWidth: '800px',
+            margin: 'auto',
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -140,7 +137,7 @@ function AddIntegrationPage() {
                 <h2 style={{ color: '#333', marginBottom: '20px' }}>
                     Available Integrations
                 </h2>
-                
+
                 <div style={{
                     display: 'grid',
                     gap: '15px'
@@ -150,14 +147,14 @@ function AddIntegrationPage() {
                             key={integration.id}
                             onClick={() => handleIntegrationSelect(integration.id)}
                             style={{
-                                border: selectedIntegration === integration.id 
-                                    ? `2px solid ${integration.color}` 
+                                border: selectedIntegration === integration.id
+                                    ? `2px solid ${integration.color}`
                                     : '2px solid #e0e0e0',
                                 borderRadius: '10px',
                                 padding: '20px',
                                 cursor: 'pointer',
-                                backgroundColor: selectedIntegration === integration.id 
-                                    ? `${integration.color}10` 
+                                backgroundColor: selectedIntegration === integration.id
+                                    ? `${integration.color}10`
                                     : 'white',
                                 transition: 'all 0.2s ease'
                             }}
@@ -177,15 +174,15 @@ function AddIntegrationPage() {
                                     {integration.icon}
                                 </div>
                                 <div style={{ flex: 1 }}>
-                                    <h3 style={{ 
-                                        margin: '0 0 5px 0', 
+                                    <h3 style={{
+                                        margin: '0 0 5px 0',
                                         color: '#333',
                                         fontSize: '18px'
                                     }}>
                                         {integration.name}
                                     </h3>
-                                    <p style={{ 
-                                        margin: '0', 
+                                    <p style={{
+                                        margin: '0',
                                         color: '#666',
                                         fontSize: '14px'
                                     }}>
@@ -255,4 +252,4 @@ function AddIntegrationPage() {
     );
 }
 
-export default AddIntegrationPage; 
+export default AddIntegrationPage;

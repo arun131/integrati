@@ -1,6 +1,6 @@
 services:
   frontend:
-    build: 
+    build:
       context: ./frontend
       args:
         - REACT_APP_FIREBASE_API_KEY=${REACT_APP_FIREBASE_API_KEY}
@@ -17,12 +17,37 @@ services:
 
   backend:
     build: ./backend
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL}
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
       - SECRET_KEY=${SECRET_KEY}
     volumes:
-      - ./backend:/app 
+      - ./backend:/app
+
+  gmail_mcp_server:
+    build: ./backend
+    command: python -m app.integrations.gmail.mcp --port 9001
+    ports:
+      - "9001:9001"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./backend:/app
+
+  calendar_mcp_server:
+    build: ./backend
+    command: python -m app.integrations.calendar.mcp --port 9002
+    ports:
+      - "9002:9002"
+    environment:
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+    volumes:
+      - ./backend:/app

@@ -11,11 +11,11 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 
 const PrivateRoute = ({ children }) => {
     const { user, token, loading } = useAuth();
-    
+
     if (loading) {
         return <div>Loading...</div>;
     }
-    
+
     // Check for either Firebase user or JWT token
     if (user || token) {
         return children;
@@ -86,4 +86,4 @@ function App() {
     );
 }
 
-export default App; 
+export default App;

@@ -1,8 +1,11 @@
+from typing import Optional
+
+from pydantic import BaseModel
 from sqlalchemy import Column, Integer, String
 from sqlalchemy.orm import relationship
+
 from app.database.connection import Base
-from pydantic import BaseModel
-from typing import Optional
+
 
 # SQLAlchemy Model
 class User(Base):
@@ -16,9 +19,11 @@ class User(Base):
     token_expiry = Column(String)
     scope = Column(String)
 
+
 # Pydantic Models for API (request/response)
 class UserBase(BaseModel):
     email: str
+
 
 class UserCreate(UserBase):
     google_id: str
@@ -26,6 +31,7 @@ class UserCreate(UserBase):
     refresh_token: str
     token_expiry: str
     scope: str
+
 
 class UserInDB(UserBase):
     id: int
@@ -38,9 +44,11 @@ class UserInDB(UserBase):
     class Config:
         from_attributes = True
 
+
 class Token(BaseModel):
     access_token: str
     token_type: str = "bearer"
 
+
 class TokenData(BaseModel):
-    email: Optional[str] = None 
+    email: str | None = None

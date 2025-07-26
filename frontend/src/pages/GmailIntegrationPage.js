@@ -1,12 +1,9 @@
 import React, { useState } from 'react';
-import { useAuth } from '../context/AuthContext';
-import { useNavigate, useParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import api from '../services/api';
 
 function GmailIntegrationPage() {
-    const { user } = useAuth();
     const navigate = useNavigate();
-    const { integrationId } = useParams();
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState([]);
     const [lastEmail, setLastEmail] = useState(null);
@@ -21,7 +18,6 @@ function GmailIntegrationPage() {
             setSearchResults(response.data);
         } catch (err) {
             setError('Failed to search emails. Please try again.');
-            console.error('Search error:', err);
         } finally {
             setLoading(false);
         }
@@ -36,7 +32,6 @@ function GmailIntegrationPage() {
             setSearchResults([]);
         } catch (err) {
             setError('Failed to retrieve last email. Please try again.');
-            console.error('Get last email error:', err);
         } finally {
             setLoading(false);
         }
@@ -55,15 +50,15 @@ function GmailIntegrationPage() {
     };
 
     return (
-        <div style={{ 
-            padding: '20px', 
-            maxWidth: '1000px', 
-            margin: 'auto', 
-            fontFamily: 'Arial, sans-serif' 
+        <div style={{
+            padding: '20px',
+            maxWidth: '1000px',
+            margin: 'auto',
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <div style={{ 
-                display: 'flex', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -105,9 +100,9 @@ function GmailIntegrationPage() {
                 </div>
             </div>
 
-            <div style={{ 
-                display: 'grid', 
-                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))', 
+            <div style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
                 gap: '20px',
                 marginBottom: '30px'
             }}>
@@ -311,4 +306,4 @@ function GmailIntegrationPage() {
     );
 }
 
-export default GmailIntegrationPage; 
+export default GmailIntegrationPage;

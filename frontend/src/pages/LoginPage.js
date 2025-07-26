@@ -21,86 +21,20 @@ function LoginPage() {
                 try {
                     const decoded = jwtDecode(token);
                     const userEmail = decoded.sub || decoded.email || '';
-                    
-                    // First, login the user
+
+                    // Login the user with the token
                     await login(token, userEmail);
-                    
-                    // Then handle the integration if present
-                    const integrationType = queryParams.get('integration');
-                    if (integrationType) {
-                        try {
-                            console.log('Initializing Firebase...');
-                            const { initializeApp } = await import('firebase/app');
-                            const { getFirestore, collection, doc, setDoc } = await import('firebase/firestore');
-                            const { getAuth } = await import('firebase/auth');
-                            
-                            // Initialize Firebase if not already initialized
-                            let app;
-                            try {
-                                app = window.firebase.app();
-                                console.log('Firebase already initialized');
-                            } catch (e) {
-                                console.log('Initializing Firebase app...');
-                                const firebaseConfig = {
-                                    apiKey: process.env.REACT_APP_FIREBASE_API_KEY,
-                                    authDomain: process.env.REACT_APP_FIREBASE_AUTH_DOMAIN,
-                                    projectId: process.env.REACT_APP_FIREBASE_PROJECT_ID,
-                                    storageBucket: process.env.REACT_APP_FIREBASE_STORAGE_BUCKET,
-                                    messagingSenderId: process.env.REACT_APP_FIREBASE_MESSAGING_SENDER_ID,
-                                    appId: process.env.REACT_APP_FIREBASE_APP_ID
-                                };
-                                app = initializeApp(firebaseConfig);
-                            }
-                            
-                            const db = getFirestore(app);
-                            const auth = getAuth(app);
-                            
-                            // Wait for auth state to be ready
-                            await new Promise((resolve) => {
-                                const unsubscribe = auth.onAuthStateChanged((user) => {
-                                    unsubscribe();
-                                    resolve(user);
-                                });
-                            });
-                            
-                            const currentUser = auth.currentUser;
-                            console.log('Firebase currentUser:', currentUser);
-                            
-                            if (currentUser) {
-                                const integrationData = {
-                                    userId: currentUser.uid,
-                                    type: integrationType,
-                                    status: 'active',
-                                    createdAt: new Date().toISOString(),
-                                    debug_timestamp: Date.now()
-                                };
-                                
-                                console.log('Adding integration:', integrationData);
-                                
-                                // Add with a new document ID
-                                const docRef = doc(collection(db, 'integrations'));
-                                await setDoc(docRef, integrationData);
-                                
-                                console.log('Integration added with ID:', docRef.id);
-                                
-                                // Force a refresh
-                                window.location.href = '/dashboard';
-                            } else {
-                                console.error('No authenticated user found in Firebase');
-                            }
-                        } catch (e) {
-                            console.error('Failed to store integration in Firestore', e);
-                        }
-                    }
+
+                    // Navigate to dashboard - integrations will be loaded from backend API
+                    navigate('/dashboard', { replace: true });
                 } catch (err) {
-                    console.error('Login error:', err);
                     setError('Invalid token received from backend.');
                 }
             }
         };
-        
+
         handleToken();
-    }, [location, login]);
+    }, [location, login, navigate]);
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
@@ -132,7 +66,7 @@ function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError('');
-        
+
         try {
             if (isSignUp) {
                 await signUpWithEmail(email, password);
@@ -148,10 +82,10 @@ function LoginPage() {
     };
 
     return (
-        <div style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            alignItems: 'center', 
+        <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            alignItems: 'center',
             minHeight: '100vh',
             backgroundColor: '#f5f5f5',
             fontFamily: 'Arial, sans-serif'
@@ -316,4 +250,4 @@ function LoginPage() {
     );
 }
 
-export default LoginPage; 
+export default LoginPage;

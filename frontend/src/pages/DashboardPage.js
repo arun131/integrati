@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import { collection, doc, setDoc, getDocs, query, where } from 'firebase/firestore';
-import { db, auth } from '../firebase';
+import api from '../services/api';
 
 function DashboardPage() {
     const { user, logout } = useAuth();
@@ -11,40 +10,43 @@ function DashboardPage() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-        // Wait for Firebase Auth to initialize
-        const unsubscribe = auth.onAuthStateChanged((user) => {
-            if (user) {
-                loadUserIntegrations();
-            } else {
-                setLoading(false);
-            }
-        });
-
-        return () => unsubscribe();
-    }, []);
+        if (user) {
+            loadUserIntegrations();
+        } else {
+            setLoading(false);
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [user]);
 
     const loadUserIntegrations = async () => {
         try {
-            console.log('Loading integrations for user:', user?.uid);
-            const integrationsRef = collection(db, 'integrations');
-            const q = query(integrationsRef, where('userId', '==', user.uid));
-            console.log('Firestore query:', q);
-            
-            const querySnapshot = await getDocs(q);
-            console.log('Query results:', querySnapshot.docs.map(doc => ({
-                id: doc.id,
-                ...doc.data()
-            })));
-            
-            const userIntegrations = [];
-            querySnapshot.forEach((doc) => {
-                userIntegrations.push({ id: doc.id, ...doc.data() });
-            });
-            
-            console.log('Setting integrations:', userIntegrations);
-            setIntegrations(userIntegrations);
+            // Add a longer delay to ensure backend has processed integration creation
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Debug: Check if we have a token
+            const token = localStorage.getItem('jwt_token');
+            console.log('Dashboard: JWT token exists:', !!token);
+            console.log('Dashboard: User object:', user);
+
+            const response = await api.get('/api/integration/integrations');
+            console.log('Dashboard: Integrations loaded:', response.data);
+            setIntegrations(response.data);
         } catch (error) {
             console.error('Error loading integrations:', error);
+            console.error('Error response:', error.response?.data);
+
+            // If we get 401, try again after a longer delay (for OAuth redirects)
+            if (error.response?.status === 401) {
+                console.log('Got 401, retrying after longer delay...');
+                await new Promise(resolve => setTimeout(resolve, 2000));
+                try {
+                    const retryResponse = await api.get('/api/integration/integrations');
+                    console.log('Dashboard: Integrations loaded on retry:', retryResponse.data);
+                    setIntegrations(retryResponse.data);
+                } catch (retryError) {
+                    console.error('Retry also failed:', retryError);
+                }
+            }
         } finally {
             setLoading(false);
         }
@@ -56,9 +58,20 @@ function DashboardPage() {
 
     const handleIntegrationClick = (integration) => {
         if (integration.status === 'pending') {
-            alert(`${getIntegrationName(integration.type)} integration is pending. OAuth setup will be implemented soon!`);
+            alert(`${getIntegrationName(integration.integration_name)} integration is pending. OAuth setup will be implemented soon!`);
         } else {
-            navigate(`/integration/${integration.type}/${integration.id}`);
+            // Map integration names to the correct routes
+            const routeMap = {
+                'gmail': '/integration/gmail',
+                'calendar': '/integration/calendar'
+            };
+
+            const baseRoute = routeMap[integration.integration_name];
+            if (baseRoute) {
+                navigate(`${baseRoute}/${integration.id}`);
+            } else {
+                console.error('Unknown integration type:', integration.integration_name);
+            }
         }
     };
 
@@ -68,11 +81,11 @@ function DashboardPage() {
 
     if (loading) {
         return (
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'center', 
-                alignItems: 'center', 
-                height: '100vh' 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'center',
+                alignItems: 'center',
+                height: '100vh'
             }}>
                 <div>Loading...</div>
             </div>
@@ -80,16 +93,16 @@ function DashboardPage() {
     }
 
     return (
-        <div style={{ 
-            padding: '20px', 
-            maxWidth: '1200px', 
-            margin: 'auto', 
-            fontFamily: 'Arial, sans-serif' 
+        <div style={{
+            padding: '20px',
+            maxWidth: '1200px',
+            margin: 'auto',
+            fontFamily: 'Arial, sans-serif'
         }}>
-            <div style={{ 
-                display: 'flex', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
+            <div style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
                 marginBottom: '30px',
                 borderBottom: '1px solid #eee',
                 paddingBottom: '20px'
@@ -119,9 +132,9 @@ function DashboardPage() {
             </div>
 
             <div style={{ marginBottom: '30px' }}>
-                <div style={{ 
-                    display: 'flex', 
-                    justifyContent: 'space-between', 
+                <div style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
                     alignItems: 'center',
                     marginBottom: '20px'
                 }}>
@@ -207,25 +220,25 @@ function DashboardPage() {
                                         width: '40px',
                                         height: '40px',
                                         borderRadius: '50%',
-                                        backgroundColor: getIntegrationColor(integration.type),
+                                        backgroundColor: getIntegrationColor(integration.integration_name),
                                         display: 'flex',
                                         alignItems: 'center',
                                         justifyContent: 'center',
                                         marginRight: '15px'
                                     }}>
-                                        {getIntegrationIcon(integration.type)}
+                                        {getIntegrationIcon(integration.integration_name)}
                                     </div>
                                     <div>
                                         <h3 style={{ margin: '0 0 5px 0', color: '#333' }}>
-                                            {getIntegrationName(integration.type)}
+                                            {getIntegrationName(integration.integration_name)}
                                         </h3>
                                         <p style={{ margin: '0', color: '#666', fontSize: '14px' }}>
-                                            {integration.status === 'active' ? 'Connected' : 'Disconnected'}
+                                            {integration.status === 'connected' ? 'Connected' : 'Disconnected'}
                                         </p>
                                     </div>
                                 </div>
                                 <p style={{ color: '#666', fontSize: '14px', margin: '0' }}>
-                                    {getIntegrationDescription(integration.type)}
+                                    {getIntegrationDescription(integration.integration_name)}
                                 </p>
                             </div>
                         ))}
@@ -236,16 +249,16 @@ function DashboardPage() {
     );
 }
 
-const getIntegrationColor = (type) => {
-    switch (type) {
+const getIntegrationColor = (integrationName) => {
+    switch (integrationName) {
         case 'gmail': return '#4285f4';
         case 'calendar': return '#34a853';
         default: return '#6c757d';
     }
 };
 
-const getIntegrationIcon = (type) => {
-    switch (type) {
+const getIntegrationIcon = (integrationName) => {
+    switch (integrationName) {
         case 'gmail':
             return (
                 <svg width="20" height="20" viewBox="0 0 24 24" fill="white">
@@ -267,20 +280,20 @@ const getIntegrationIcon = (type) => {
     }
 };
 
-const getIntegrationName = (type) => {
-    switch (type) {
+const getIntegrationName = (integrationName) => {
+    switch (integrationName) {
         case 'gmail': return 'Gmail';
         case 'calendar': return 'Google Calendar';
         default: return 'Unknown';
     }
 };
 
-const getIntegrationDescription = (type) => {
-    switch (type) {
+const getIntegrationDescription = (integrationName) => {
+    switch (integrationName) {
         case 'gmail': return 'Send, receive, and manage your emails';
         case 'calendar': return 'Schedule and manage your events';
         default: return 'Integration description';
     }
 };
 
-export default DashboardPage; 
+export default DashboardPage;
