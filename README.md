@@ -282,9 +282,14 @@ For backend development:
 ```bash
 cd backend
 
+# Create Env
+python -m venv .venv
+source .venv/bin/activate
+pip install uv
+
 # Install dependencies
-pip install -r requirements.txt
-pip install -r requirements-test.txt
+uv pip install -r requirements.txt
+uv pip install -r requirements-test.txt
 
 # Run development server
 uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
