@@ -1,10 +1,9 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { jwtDecode } from 'jwt-decode';
 
 function LoginPage() {
-    const { signInWithGoogle, signInWithGithub, signInWithEmail, signUpWithEmail, login } = useAuth();
+    const { signInWithGoogle, signInWithGithub, signInWithEmail, signUpWithEmail, user, plexusToken } = useAuth();
     const navigate = useNavigate();
     const location = useLocation();
     const [email, setEmail] = useState('');
@@ -12,38 +11,28 @@ function LoginPage() {
     const [isSignUp, setIsSignUp] = useState(false);
     const [error, setError] = useState('');
     const [loading, setLoading] = useState(false);
+    const [tenantRegistrationStatus, setTenantRegistrationStatus] = useState('');
 
     useEffect(() => {
-        const handleToken = async () => {
-            const queryParams = new URLSearchParams(location.search);
-            const token = queryParams.get('token');
-            if (token) {
-                try {
-                    const decoded = jwtDecode(token);
-                    const userEmail = decoded.sub || decoded.email || '';
-
-                    // Login the user with the token
-                    await login(token, userEmail);
-
-                    // Navigate to dashboard - integrations will be loaded from backend API
-                    navigate('/dashboard', { replace: true });
-                } catch (err) {
-                    setError('Invalid token received from backend.');
-                }
-            }
-        };
-
-        handleToken();
-    }, [location, login, navigate]);
+        // Check if user is already authenticated and redirect to dashboard
+        if (user && plexusToken) {
+            navigate('/dashboard', { replace: true });
+        }
+    }, [user, plexusToken, navigate]);
 
     const handleGoogleSignIn = async () => {
         setLoading(true);
         setError('');
+        setTenantRegistrationStatus('Signing in with Google...');
         try {
             await signInWithGoogle();
+            setTenantRegistrationStatus('Setting up your tenant account...');
+            // Tenant registration happens automatically in AuthContext
             navigate('/dashboard');
         } catch (error) {
+            console.error('Google sign-in error:', error);
             setError('Failed to sign in with Google: ' + error.message);
+            setTenantRegistrationStatus('');
         } finally {
             setLoading(false);
         }
@@ -52,11 +41,16 @@ function LoginPage() {
     const handleGithubSignIn = async () => {
         setLoading(true);
         setError('');
+        setTenantRegistrationStatus('Signing in with GitHub...');
         try {
             await signInWithGithub();
+            setTenantRegistrationStatus('Setting up your tenant account...');
+            // Tenant registration happens automatically in AuthContext
             navigate('/dashboard');
         } catch (error) {
+            console.error('GitHub sign-in error:', error);
             setError('Failed to sign in with GitHub: ' + error.message);
+            setTenantRegistrationStatus('');
         } finally {
             setLoading(false);
         }
@@ -66,16 +60,22 @@ function LoginPage() {
         e.preventDefault();
         setLoading(true);
         setError('');
+        setTenantRegistrationStatus(isSignUp ? 'Creating account...' : 'Signing in...');
 
         try {
             if (isSignUp) {
                 await signUpWithEmail(email, password);
+                setTenantRegistrationStatus('Setting up your tenant account...');
             } else {
                 await signInWithEmail(email, password);
+                setTenantRegistrationStatus('Setting up your tenant account...');
             }
+            // Tenant registration happens automatically in AuthContext
             navigate('/dashboard');
         } catch (error) {
+            console.error('Email auth error:', error);
             setError(error.message);
+            setTenantRegistrationStatus('');
         } finally {
             setLoading(false);
         }
@@ -118,6 +118,20 @@ function LoginPage() {
                     </div>
                 )}
 
+                {tenantRegistrationStatus && (
+                    <div style={{
+                        backgroundColor: '#e3f2fd',
+                        color: '#1565c0',
+                        padding: '10px',
+                        borderRadius: '5px',
+                        marginBottom: '20px',
+                        fontSize: '14px',
+                        textAlign: 'center'
+                    }}>
+                        {tenantRegistrationStatus}
+                    </div>
+                )}
+
                 <form onSubmit={handleEmailAuth} style={{ marginBottom: '20px' }}>
                     <input
                         type="email"
@@ -134,6 +148,7 @@ function LoginPage() {
                             fontSize: '16px'
                         }}
                         required
+                        disabled={loading}
                     />
                     <input
                         type="password"
@@ -150,6 +165,7 @@ function LoginPage() {
                             fontSize: '16px'
                         }}
                         required
+                        disabled={loading}
                     />
                     <button
                         type="submit"
@@ -173,12 +189,14 @@ function LoginPage() {
                 <div style={{ textAlign: 'center', marginBottom: '20px' }}>
                     <button
                         onClick={() => setIsSignUp(!isSignUp)}
+                        disabled={loading}
                         style={{
                             background: 'none',
                             border: 'none',
                             color: '#4285f4',
-                            cursor: 'pointer',
-                            textDecoration: 'underline'
+                            cursor: loading ? 'not-allowed' : 'pointer',
+                            textDecoration: 'underline',
+                            opacity: loading ? 0.7 : 1
                         }}
                     >
                         {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
@@ -245,6 +263,20 @@ function LoginPage() {
                     </svg>
                     Continue with GitHub
                 </button>
+
+                {loading && (
+                    <div style={{
+                        textAlign: 'center',
+                        marginTop: '20px',
+                        color: '#666',
+                        fontSize: '14px'
+                    }}>
+                        <p>Please wait while we set up your account...</p>
+                        <p style={{ fontSize: '12px', color: '#999' }}>
+                            This includes registering your tenant and configuring integrations
+                        </p>
+                    </div>
+                )}
             </div>
         </div>
     );

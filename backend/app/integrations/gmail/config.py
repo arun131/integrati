@@ -1,1 +1,0 @@
-GMAIL_REDIRECT_URI = "http://localhost:8000/integrations/gmail/auth/callback"

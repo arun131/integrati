@@ -10,46 +10,62 @@ services:
         - REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${REACT_APP_FIREBASE_MESSAGING_SENDER_ID}
         - REACT_APP_FIREBASE_APP_ID=${REACT_APP_FIREBASE_APP_ID}
         - REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL:-http://localhost:8000}
+        - REACT_APP_ADMIN_API_KEY=${REACT_APP_ADMIN_API_KEY}
+        - REACT_APP_DEBUG=${REACT_APP_DEBUG:-true}
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      - integrati-backend
 
-  backend:
-    build: ./backend
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000
+  # New integrati_backend service (MCP Plexus)
+  integrati-backend:
+    build: ./integrati_backend
     ports:
       - "8000:8000"
     environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - SECRET_KEY=${SECRET_KEY}
-      - GEMINI_API_KEY=${GEMINI_API_KEY}
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - STORAGE_BACKEND=redis
+      - DEBUG_MODE=${DEBUG:-true}
+      - PLEXUS_FASTMCP_LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - HOST_APP_REGISTRATION_SECRET=${HOST_APP_REGISTRATION_SECRET}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_PRIVATE_KEY_ID=${FIREBASE_PRIVATE_KEY_ID}
+      - FIREBASE_PRIVATE_KEY=${FIREBASE_PRIVATE_KEY}
+      - FIREBASE_CLIENT_EMAIL=${FIREBASE_CLIENT_EMAIL}
+      - FIREBASE_CLIENT_ID=${FIREBASE_CLIENT_ID}
+      - GMAIL_CLIENT_ID=${GMAIL_CLIENT_ID}
+      - GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
+      - CALENDAR_CLIENT_ID=${CALENDAR_CLIENT_ID}
+      - CALENDAR_CLIENT_SECRET=${CALENDAR_CLIENT_SECRET}
     volumes:
-      - ./backend:/app
+      - ./integrati_backend/data:/app/data
+      - ./.env:/app/.env:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
 
-  gmail_mcp_server:
-    build: ./backend
-    command: python -m app.integrations.gmail.mcp --port 9001
+  # Redis service for integrati_backend
+  redis:
+    image: redis:7-alpine
     ports:
-      - "9001:9001"
-    environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - "6380:6379"
     volumes:
-      - ./backend:/app
+      - redis_data:/dat
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
 
-  calendar_mcp_server:
-    build: ./backend
-    command: python -m app.integrations.calendar.mcp --port 9002
-    ports:
-      - "9002:9002"
-    environment:
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///./app.db}
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-    volumes:
-      - ./backend:/app
+volumes:
+  redis_data:
