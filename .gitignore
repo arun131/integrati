@@ -208,6 +208,9 @@ frontend/.next/
 frontend/.env
 frontend/.env.*
 
+# Environment files
+.envfilled
+
 # Logs
 *.log
 npm-debug.log*
