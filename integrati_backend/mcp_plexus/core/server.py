@@ -83,6 +83,9 @@ class MCPPlexusServer:
         self._tool_tenant_scoping: Dict[str, List[str]] = {}
         # Track which tools belong to which tool sets
         self._tool_set_assignments: Dict[str, List[str]] = {}
+        # Track which integration tool modules have been loaded to avoid duplicate imports
+        self._loaded_connectors: Set[str] = set()
+        self._tool_set_assignments: Dict[str, List[str]] = {}
 
         logger.info(
             f"MCPPlexusServer initialized using shared FastMCP instance: {getattr(self._fastmcp_instance, 'name', 'None')}"
@@ -323,6 +326,28 @@ class MCPPlexusServer:
 
         # Check OAuth integration status for this tenant
         oauth_status = await self._get_tenant_oauth_status(entity_id)
+
+        # Dynamically import connector tool modules for connected integrations so their tools are registered
+        connector_module_map = {
+            "gmail": "integrations.gmail.tools",
+            "calendar": "integrations.calendar.tools",
+        }
+        for connector, is_connected in oauth_status.items():
+            if is_connected and connector not in self._loaded_connectors:
+                module_path = connector_module_map.get(connector)
+                if module_path:
+                    try:
+                        import importlib
+
+                        importlib.import_module(module_path)
+                        self._loaded_connectors.add(connector)
+                        logger.info(
+                            f"Loaded tool module '{module_path}' for connector '{connector}'"
+                        )
+                    except Exception as e:
+                        logger.error(
+                            f"Failed to load tool module '{module_path}' for connector '{connector}': {e}"
+                        )
 
         visible_tools: List[MCPTool] = []
         for tool_name, fmcp_tool_obj in source_tools_dict.items():

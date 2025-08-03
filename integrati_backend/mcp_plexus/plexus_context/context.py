@@ -83,6 +83,11 @@ class PlexusContext(FastMCPContext):
         return None
 
     @property
+    def user_id(self) -> Optional[str]:
+        """Alias for persistent_user_id to satisfy existing tool implementations."""
+        return self.persistent_user_id
+
+    @property
     def persistent_user_id(self) -> Optional[str]:
         """
         Retrieves the persistent user ID that remains consistent across sessions.

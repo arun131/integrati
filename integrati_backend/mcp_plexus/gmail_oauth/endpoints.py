@@ -233,6 +233,34 @@ async def gmail_callback(
 
         logger.info(f"Tenant Gmail OAuth tokens stored successfully for E:{entity_id}")
 
+        # NEW: Mark connector as connected in user_integrations table
+        try:
+            from mcp_plexus.storage.sqlite_base import get_sqlite_db_connection
+
+            db_conn = await get_sqlite_db_connection()
+            cursor = db_conn.cursor()
+            now_iso = datetime.utcnow().isoformat()
+            cursor.execute(
+                """
+                INSERT INTO user_integrations (entity_id, connector, status, connected_at, revoked_at)
+                VALUES (?, 'gmail', 'connected', ?, NULL)
+                ON CONFLICT(entity_id, connector) DO UPDATE SET
+                    status='connected',
+                    connected_at=excluded.connected_at,
+                    revoked_at=NULL;
+                """,
+                (entity_id, now_iso),
+            )
+            db_conn.commit()
+            logger.info(
+                "'gmail' marked as connected in user_integrations table for E:%s",
+                entity_id,
+            )
+        except Exception as db_e:
+            logger.error(
+                "Failed to update user_integrations for gmail: %s", db_e, exc_info=True
+            )
+
         # TODO: Register Gmail tools for the tenant (will be shared across all configs)
 
         return HTMLResponse("""
