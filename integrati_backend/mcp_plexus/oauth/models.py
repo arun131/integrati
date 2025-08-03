@@ -1,6 +1,6 @@
 # mcp_plexus/oauth/models.py
 from pydantic import BaseModel, Field, HttpUrl
-from typing import Optional, List, Dict, Any
+from typing import Optional, List
 from datetime import datetime, timezone
 import secrets
 
@@ -12,56 +12,52 @@ def default_state_generator() -> str:
 
 class AuthRequest(BaseModel):
     """OAuth authorization request parameters as per RFC 6749."""
+
     response_type: str = Field(description="Must be 'code'.")
     client_id: str = Field(description="The client identifier.")
-    redirect_uri: HttpUrl = Field(description="The URI to redirect the user agent back to.")
+    redirect_uri: HttpUrl = Field(
+        description="The URI to redirect the user agent back to."
+    )
     scope: Optional[str] = Field(
-        default=None, 
-        description="Space-separated list of requested scopes."
+        default=None, description="Space-separated list of requested scopes."
     )
     state: str = Field(
         default_factory=default_state_generator,
-        description="An opaque value used to maintain state between the request and callback."
+        description="An opaque value used to maintain state between the request and callback.",
     )
     code_challenge: Optional[str] = Field(
-        default=None, 
-        description="PKCE code challenge."
+        default=None, description="PKCE code challenge."
     )
     code_challenge_method: Optional[str] = Field(
-        default=None, 
-        description="PKCE code challenge method (e.g., 'S256')."
+        default=None, description="PKCE code challenge method (e.g., 'S256')."
     )
 
 
 class TokenRequest(BaseModel):
     """OAuth token request parameters for authorization code or refresh token grants."""
+
     grant_type: str = Field(
         description="Type of grant, e.g., 'authorization_code' or 'refresh_token'."
     )
     code: Optional[str] = Field(
-        default=None, 
-        description="The authorization code received from the authorization server."
+        default=None,
+        description="The authorization code received from the authorization server.",
     )
     redirect_uri: Optional[HttpUrl] = Field(
-        default=None, 
-        description="Required if included in the authorization request."
+        default=None, description="Required if included in the authorization request."
     )
     client_id: Optional[str] = Field(
-        default=None, 
-        description="The client identifier (optional for public clients)."
+        default=None, description="The client identifier (optional for public clients)."
     )
     code_verifier: Optional[str] = Field(
-        default=None, 
-        description="PKCE code verifier."
+        default=None, description="PKCE code verifier."
     )
-    refresh_token: Optional[str] = Field(
-        default=None, 
-        description="The refresh token."
-    )
+    refresh_token: Optional[str] = Field(default=None, description="The refresh token.")
 
 
 class TokenResponse(BaseModel):
     """OAuth token response structure as per RFC 6749."""
+
     access_token: str
     token_type: str = "Bearer"
     expires_in: Optional[int] = None
@@ -72,6 +68,7 @@ class TokenResponse(BaseModel):
 
 class AuthCodeData(BaseModel):
     """Internal representation of authorization code data for storage and validation."""
+
     code: str = Field(description="The authorization code.")
     client_id: str
     redirect_uri: HttpUrl
@@ -86,6 +83,7 @@ class AuthCodeData(BaseModel):
 
 class AccessTokenData(BaseModel):
     """Internal representation of access token data for validation and scope checking."""
+
     access_token: str
     client_id: str
     user_id: str
@@ -97,6 +95,7 @@ class AccessTokenData(BaseModel):
 
 class RefreshTokenData(BaseModel):
     """Internal representation of refresh token data for token renewal."""
+
     refresh_token: str
     client_id: str
     user_id: str
@@ -107,15 +106,18 @@ class RefreshTokenData(BaseModel):
 
 class OAuthClient(BaseModel):
     """Represents a registered OAuth client application."""
+
     client_id: str
     client_secret_hash: Optional[str] = None  # For confidential clients
     client_name: str
     redirect_uris: List[HttpUrl]
     allowed_scopes: List[str] = Field(default_factory=list)
-    allowed_grant_types: List[str] = Field(default=["authorization_code", "refresh_token"])
+    allowed_grant_types: List[str] = Field(
+        default=["authorization_code", "refresh_token"]
+    )
     is_trusted_internal: bool = Field(
         default=False,
-        description="If True, consent may be auto-approved for this client for specific internal flows."
+        description="If True, consent may be auto-approved for this client for specific internal flows.",
     )
 
 
@@ -124,6 +126,7 @@ class OAuthProviderSettings(BaseModel):
     Configuration for an external (third-party) OAuth provider that MCP Plexus tools might use.
     This is distinct from MCP Plexus's own embedded OAuth server settings.
     """
+
     provider_name: str = Field(
         description="Unique name for this provider (e.g., 'google', 'github')."
     )
@@ -136,12 +139,10 @@ class OAuthProviderSettings(BaseModel):
     authorization_url: HttpUrl = Field(
         description="The third-party provider's authorization endpoint."
     )
-    token_url: HttpUrl = Field(
-        description="The third-party provider's token endpoint."
-    )
+    token_url: HttpUrl = Field(description="The third-party provider's token endpoint.")
     userinfo_url: Optional[HttpUrl] = Field(
         default=None,
-        description="The third-party provider's userinfo endpoint (optional)."
+        description="The third-party provider's userinfo endpoint (optional).",
     )
     default_scopes: List[str] = Field(
         description="Default scopes to request if not specified by the tool."
@@ -150,6 +151,7 @@ class OAuthProviderSettings(BaseModel):
 
 class WellKnownOAuthMetadata(BaseModel):
     """OAuth 2.0 server metadata as defined in RFC 8414 for discovery endpoint."""
+
     issuer: HttpUrl
     authorization_endpoint: HttpUrl
     token_endpoint: HttpUrl

@@ -1,10 +1,4 @@
-# mcp_plexus/tenants/__init__.py
-"""
-Tenant management module initialization.
-
-This module provides a complete tenant management system including data models,
-storage abstractions, concrete implementations, business logic, and API endpoints.
-"""
+"""Tenant management module for MCP Plexus."""
 
 from .models import Tenant, TenantCreate, TenantUpdate, TenantInDB
 from .storage_interfaces import AbstractTenantStore
@@ -13,19 +7,15 @@ from .sqlite_tenant_config_store import get_sqlite_tenant_config_store
 from .service import TenantService
 from .endpoints import tenants_admin_router
 
-# Export all public components for external use
 __all__ = [
-    # Data models for tenant operations
-    "Tenant", 
-    "TenantCreate", 
-    "TenantUpdate", 
+    "Tenant",
+    "TenantCreate",
+    "TenantUpdate",
     "TenantInDB",
-    # Storage layer abstractions and implementations
-    "AbstractTenantStore", 
-    "SQLiteTenantStore", 
+    "AbstractTenantStore",
+    "SQLiteTenantStore",
     "get_sqlite_tenant_store",
-    # Business logic service
+    "get_sqlite_tenant_config_store",
     "TenantService",
-    # API endpoints
-    "tenants_admin_router"
+    "tenants_admin_router",
 ]

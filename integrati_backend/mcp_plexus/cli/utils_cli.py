@@ -13,19 +13,19 @@ def make_api_request(
     json_payload: Optional[Dict[str, Any]] = None,
     params_payload: Optional[Dict[str, Any]] = None,
     expected_status: Union[int, List[int]] = 200,
-    expect_json_response: bool = True
+    expect_json_response: bool = True,
 ) -> Any:
     """
     Makes an HTTP API request with comprehensive logging and error handling.
-    
+
     Handles authentication via admin API key when available and provides
     detailed console output for debugging purposes.
     """
     # Import here to avoid circular imports
-    from .config import PLEXUS_CLI_API_BASE_URL, PLEXUS_CLI_ADMIN_API_KEY
+    from .config import PLEXUS_CLI_ADMIN_API_KEY
 
     full_url = f"{PLEXUS_CLI_API_BASE_URL}{endpoint}"
-    headers: Dict[str, str] = {} 
+    headers: Dict[str, str] = {}
 
     # Add admin authentication header if available
     if PLEXUS_CLI_ADMIN_API_KEY:
@@ -34,8 +34,8 @@ def make_api_request(
         # Warn user if attempting admin endpoint without proper credentials
         if "/admin/" in endpoint:
             typer.secho(
-                "CLI: Warning - ADMIN_API_KEY not set in .env for CLI. Admin API calls might fail.", 
-                fg=typer.colors.YELLOW
+                "CLI: Warning - ADMIN_API_KEY not set in .env for CLI. Admin API calls might fail.",
+                fg=typer.colors.YELLOW,
             )
 
     # Log request details for debugging
@@ -43,7 +43,7 @@ def make_api_request(
     if json_payload:
         typer.echo(f"CLI: JSON Payload: {json.dumps(json_payload, indent=2)}")
     if params_payload:
-         typer.echo(f"CLI: Query Params: {params_payload}")
+        typer.echo(f"CLI: Query Params: {params_payload}")
     if headers:
         # Mask sensitive API key in logs
         log_headers = headers.copy()
@@ -53,27 +53,31 @@ def make_api_request(
 
     try:
         response = requests.request(
-            method, 
-            full_url, 
-            json=json_payload, 
-            params=params_payload, 
-            headers=headers, 
-            timeout=30
+            method,
+            full_url,
+            json=json_payload,
+            params=params_payload,
+            headers=headers,
+            timeout=30,
         )
         typer.echo(f"CLI: Response Status: {response.status_code}")
 
         # Normalize expected status to list for consistent checking
-        expected_statuses = [expected_status] if isinstance(expected_status, int) else expected_status
+        expected_statuses = (
+            [expected_status] if isinstance(expected_status, int) else expected_status
+        )
 
         if response.status_code in expected_statuses:
             # Handle 204 No Content responses
             if not response.content and response.status_code == 204:
-                 typer.echo(typer.style(
-                     f"CLI: Success (Status {response.status_code}, No Content).", 
-                     fg=typer.colors.GREEN
-                 ))
-                 return None
-            
+                typer.echo(
+                    typer.style(
+                        f"CLI: Success (Status {response.status_code}, No Content).",
+                        fg=typer.colors.GREEN,
+                    )
+                )
+                return None
+
             if expect_json_response:
                 try:
                     data = response.json()
@@ -82,16 +86,18 @@ def make_api_request(
                     return data
                 except json.JSONDecodeError:
                     typer.secho(
-                        f"CLI: Error - Could not decode JSON response. Raw text: {response.text}", 
-                        fg=typer.colors.RED
+                        f"CLI: Error - Could not decode JSON response. Raw text: {response.text}",
+                        fg=typer.colors.RED,
                     )
                     raise typer.Exit(code=1)
             else:
                 # Handle non-JSON responses (e.g., plain text, 204 responses)
-                typer.echo(typer.style(
-                    f"CLI: Success (Status {response.status_code}). Raw text: {response.text[:200]}...", 
-                    fg=typer.colors.GREEN
-                ))
+                typer.echo(
+                    typer.style(
+                        f"CLI: Success (Status {response.status_code}). Raw text: {response.text[:200]}...",
+                        fg=typer.colors.GREEN,
+                    )
+                )
                 return response.text
         else:
             # Handle API error responses
@@ -106,8 +112,8 @@ def make_api_request(
 
     except requests.exceptions.ConnectionError as e:
         typer.secho(
-            f"CLI: Connection Error - Could not connect to API at {full_url}. Is the server running? Error: {e}", 
-            fg=typer.colors.RED
+            f"CLI: Connection Error - Could not connect to API at {full_url}. Is the server running? Error: {e}",
+            fg=typer.colors.RED,
         )
         raise typer.Exit(code=1)
     except requests.exceptions.RequestException as e:

@@ -28,5 +28,5 @@ repos:
         language: system
         pass_filenames: false
         always_run: true
-        args: [backend/tests/unit/, -v]
-        working_dir: backend
+        args: [integrati_backend/tests/unit/, -v]
+        working_dir: integrati_backend

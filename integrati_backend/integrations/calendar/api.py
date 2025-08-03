@@ -6,7 +6,7 @@ from datetime import datetime, timezone, timedelta
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from .auth import CalendarAuth
+from .unified_auth import UnifiedCalendarAuth
 from mcp_plexus.oauth.errors import PlexusExternalAuthRequiredError
 
 logger = logging.getLogger(__name__)
@@ -19,7 +19,7 @@ class CalendarAPI:
         """Initialize Calendar API wrapper."""
         self.entity_id = entity_id
         self.user_id = user_id
-        self.auth = CalendarAuth(entity_id, user_id)
+        self.auth = UnifiedCalendarAuth(entity_id, user_id, prefer_tenant_level=True)
         self.service = None
 
     async def _get_service(self):
@@ -28,7 +28,9 @@ class CalendarAPI:
             credentials = await self.auth.get_valid_credentials()
             if not credentials:
                 raise PlexusExternalAuthRequiredError(
-                    "Calendar integration not authenticated"
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="calendar",
+                    detail_message="Calendar integration not authenticated",
                 )
 
             self.service = build("calendar", "v3", credentials=credentials)
@@ -67,7 +69,11 @@ class CalendarAPI:
             return [self._parse_event(event) for event in events]
         except HttpError as e:
             if e.resp.status == 401:
-                raise PlexusExternalAuthRequiredError("Calendar authentication expired")
+                raise PlexusExternalAuthRequiredError(
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="calendar",
+                    detail_message="Calendar authentication expired",
+                )
             raise Exception(f"Calendar API error: {e}")
         except Exception as e:
             logger.error(f"Error getting calendar events: {e}")

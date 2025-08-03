@@ -1,6 +1,6 @@
 # mcp_plexus/oauth/storage.py
 import logging
-from typing import Optional, List, Union, Dict, Any
+from typing import Optional, Dict, Any
 
 import redis.asyncio as aioredis
 from datetime import datetime, timezone
@@ -8,37 +8,26 @@ import json
 
 from ..settings import settings as plexus_global_settings
 from .storage_interfaces import (
-    AbstractAuthCodeStore, 
-    AbstractOAuthTokenStore, 
-    AbstractExternalOAuthProviderConfigStore, 
+    AbstractAuthCodeStore,
+    AbstractOAuthTokenStore,
+    AbstractExternalOAuthProviderConfigStore,
     AbstractOAuthClientStore,
-    AbstractUserExternalTokenStore
+    AbstractUserExternalTokenStore,
 )
 from .models import (
-    AuthCodeData, 
-    AccessTokenData, 
-    RefreshTokenData, 
-    OAuthProviderSettings, 
-    OAuthClient
+    AuthCodeData,
+    AccessTokenData,
+    RefreshTokenData,
+    OAuthProviderSettings,
 )
 
 # SQLite implementations and their factory functions
-from .sqlite_oauth_internal_token_store import (
-    SQLiteOAuthTokenStore, 
-    get_sqlite_oauth_internal_token_store
-)
-from .sqlite_auth_code_store import (
-    SQLiteAuthCodeStore, 
-    get_sqlite_auth_code_store
-)
+from .sqlite_oauth_internal_token_store import get_sqlite_oauth_internal_token_store
+from .sqlite_auth_code_store import get_sqlite_auth_code_store
 from .sqlite_external_oauth_provider_config_store import (
-    SQLiteExternalOAuthProviderConfigStore, 
-    get_sqlite_external_oauth_provider_config_store
+    get_sqlite_external_oauth_provider_config_store,
 )
-from .sqlite_oauth_internal_client_store import (
-    SQLiteOAuthClientStore, 
-    get_sqlite_internal_oauth_client_store
-)
+from .sqlite_oauth_internal_client_store import get_sqlite_internal_oauth_client_store
 from .sqlite_tenant_external_token_store import get_sqlite_tenant_external_token_store
 
 logger = logging.getLogger(__name__)
@@ -47,32 +36,35 @@ logger = logging.getLogger(__name__)
 class RedisAuthCodeStore(AbstractAuthCodeStore):
     """
     Redis-based storage for OAuth authorization codes with automatic expiration.
-    
+
     Auth codes are temporary tokens with a short TTL for security purposes.
     """
+
     _redis_client: Optional[aioredis.Redis] = None
     AUTH_CODE_TTL_SECONDS: int = 600  # 10 minutes default TTL
 
     def __init__(self, auth_code_ttl_seconds: Optional[int] = None):
         if auth_code_ttl_seconds is not None:
             self.AUTH_CODE_TTL_SECONDS = auth_code_ttl_seconds
-        logger.info(f"RedisAuthCodeStore initialized. TTL: {self.AUTH_CODE_TTL_SECONDS}s.")
+        logger.info(
+            f"RedisAuthCodeStore initialized. TTL: {self.AUTH_CODE_TTL_SECONDS}s."
+        )
 
     async def initialize(self) -> None:
         """Establish Redis connection with configured parameters."""
         if self._redis_client:
             return
-            
+
         connection_params = {
             "host": plexus_global_settings.redis_host,
             "port": plexus_global_settings.redis_port,
             "db": plexus_global_settings.redis_db,
             "decode_responses": False,
         }
-        
+
         if plexus_global_settings.redis_password:
             connection_params["password"] = plexus_global_settings.redis_password
-            
+
         try:
             self._redis_client = aioredis.Redis(**connection_params)
             await self._redis_client.ping()
@@ -81,7 +73,7 @@ class RedisAuthCodeStore(AbstractAuthCodeStore):
             logger.error(f"RedisAuthCodeStore: Failed to connect: {e}", exc_info=True)
             self._redis_client = None
             raise
-            
+
     async def teardown(self) -> None:
         """Clean up Redis connection."""
         if self._redis_client:
@@ -105,14 +97,14 @@ class RedisAuthCodeStore(AbstractAuthCodeStore):
         await client.set(
             self._get_key(auth_code_data.code),
             auth_code_data.model_dump_json().encode("utf-8"),
-            ex=self.AUTH_CODE_TTL_SECONDS
+            ex=self.AUTH_CODE_TTL_SECONDS,
         )
 
     async def load_auth_code(self, code: str) -> Optional[AuthCodeData]:
         """Load and deserialize auth code data."""
         client = await self._get_client()
         data_bytes = await client.get(self._get_key(code))
-        
+
         if data_bytes:
             try:
                 return AuthCodeData.model_validate_json(data_bytes.decode("utf-8"))
@@ -130,33 +122,36 @@ class RedisAuthCodeStore(AbstractAuthCodeStore):
 class RedisOAuthTokenStore(AbstractOAuthTokenStore):
     """
     Redis-based storage for OAuth access and refresh tokens.
-    
+
     Access tokens use their expiration time as TTL, while refresh tokens
     have a configurable storage TTL (default 90 days).
     """
+
     _redis_client: Optional[aioredis.Redis] = None
     REFRESH_TOKEN_STORAGE_TTL_SECONDS: Optional[int] = 3600 * 24 * 90  # 90 days
 
     def __init__(self, refresh_token_ttl: Optional[int] = None):
         if refresh_token_ttl is not None:
             self.REFRESH_TOKEN_STORAGE_TTL_SECONDS = refresh_token_ttl
-        logger.info(f"RedisOAuthTokenStore initialized. Refresh TTL: {self.REFRESH_TOKEN_STORAGE_TTL_SECONDS}s.")
+        logger.info(
+            f"RedisOAuthTokenStore initialized. Refresh TTL: {self.REFRESH_TOKEN_STORAGE_TTL_SECONDS}s."
+        )
 
     async def initialize(self) -> None:
         """Establish Redis connection with configured parameters."""
         if self._redis_client:
             return
-            
+
         connection_params = {
             "host": plexus_global_settings.redis_host,
             "port": plexus_global_settings.redis_port,
             "db": plexus_global_settings.redis_db,
             "decode_responses": False,
         }
-        
+
         if plexus_global_settings.redis_password:
             connection_params["password"] = plexus_global_settings.redis_password
-            
+
         try:
             self._redis_client = aioredis.Redis(**connection_params)
             await self._redis_client.ping()
@@ -190,23 +185,23 @@ class RedisOAuthTokenStore(AbstractOAuthTokenStore):
     async def save_access_token(self, token_data: AccessTokenData) -> None:
         """Save access token with TTL based on its expiration time."""
         ttl = int((token_data.expires_at - datetime.now(timezone.utc)).total_seconds())
-        
+
         if ttl <= 0:
             logger.warning("Access token expired. Not saving.")
             return
-            
+
         client = await self._get_client()
         await client.set(
             self._get_access_token_key(token_data.access_token),
             token_data.model_dump_json().encode("utf-8"),
-            ex=ttl
+            ex=ttl,
         )
 
     async def load_access_token(self, token: str) -> Optional[AccessTokenData]:
         """Load and deserialize access token data."""
         client = await self._get_client()
         data_bytes = await client.get(self._get_access_token_key(token))
-        
+
         if data_bytes:
             try:
                 return AccessTokenData.model_validate_json(data_bytes.decode("utf-8"))
@@ -226,14 +221,14 @@ class RedisOAuthTokenStore(AbstractOAuthTokenStore):
         await client.set(
             self._get_refresh_token_key(token_data.refresh_token),
             token_data.model_dump_json().encode("utf-8"),
-            ex=self.REFRESH_TOKEN_STORAGE_TTL_SECONDS
+            ex=self.REFRESH_TOKEN_STORAGE_TTL_SECONDS,
         )
 
     async def load_refresh_token(self, token: str) -> Optional[RefreshTokenData]:
         """Load and deserialize refresh token data."""
         client = await self._get_client()
         data_bytes = await client.get(self._get_refresh_token_key(token))
-        
+
         if data_bytes:
             try:
                 return RefreshTokenData.model_validate_json(data_bytes.decode("utf-8"))
@@ -251,9 +246,10 @@ class RedisOAuthTokenStore(AbstractOAuthTokenStore):
 class RedisExternalOAuthProviderConfigStore(AbstractExternalOAuthProviderConfigStore):
     """
     Redis-based storage for external OAuth provider configurations.
-    
+
     Stores provider settings per entity (tenant) for multi-tenant support.
     """
+
     _redis_client: Optional[aioredis.Redis] = None
 
     def __init__(self):
@@ -263,23 +259,26 @@ class RedisExternalOAuthProviderConfigStore(AbstractExternalOAuthProviderConfigS
         """Establish Redis connection with configured parameters."""
         if self._redis_client:
             return
-            
+
         connection_params = {
             "host": plexus_global_settings.redis_host,
             "port": plexus_global_settings.redis_port,
             "db": plexus_global_settings.redis_db,
             "decode_responses": False,
         }
-        
+
         if plexus_global_settings.redis_password:
             connection_params["password"] = plexus_global_settings.redis_password
-            
+
         try:
             self._redis_client = aioredis.Redis(**connection_params)
             await self._redis_client.ping()
             logger.info("RedisExternalOAuthProviderConfigStore: Connected.")
         except Exception as e:
-            logger.error(f"RedisExternalOAuthProviderConfigStore: Connect failed: {e}", exc_info=True)
+            logger.error(
+                f"RedisExternalOAuthProviderConfigStore: Connect failed: {e}",
+                exc_info=True,
+            )
             self._redis_client = None
             raise
 
@@ -304,24 +303,32 @@ class RedisExternalOAuthProviderConfigStore(AbstractExternalOAuthProviderConfigS
         """Generate Redis key pattern for scanning all provider configs for an entity."""
         return f"plexus:tenant:{entity_id}:ext_oauth_cfg:*"
 
-    async def save_provider_config(self, entity_id: str, config: OAuthProviderSettings) -> None:
+    async def save_provider_config(
+        self, entity_id: str, config: OAuthProviderSettings
+    ) -> None:
         """Save OAuth provider configuration for a specific entity."""
         client = await self._get_client()
         await client.set(
             self._get_config_key(entity_id, config.provider_name),
-            config.model_dump_json().encode("utf-8")
+            config.model_dump_json().encode("utf-8"),
         )
 
-    async def load_provider_config(self, entity_id: str, provider_name: str) -> Optional[OAuthProviderSettings]:
+    async def load_provider_config(
+        self, entity_id: str, provider_name: str
+    ) -> Optional[OAuthProviderSettings]:
         """Load OAuth provider configuration for a specific entity and provider."""
         client = await self._get_client()
         data_bytes = await client.get(self._get_config_key(entity_id, provider_name))
-        
+
         if data_bytes:
             try:
-                return OAuthProviderSettings.model_validate_json(data_bytes.decode("utf-8"))
+                return OAuthProviderSettings.model_validate_json(
+                    data_bytes.decode("utf-8")
+                )
             except Exception as e:
-                logger.error(f"Error deserializing provider config '{provider_name}' for entity {entity_id}: {e}")
+                logger.error(
+                    f"Error deserializing provider config '{provider_name}' for entity {entity_id}: {e}"
+                )
                 return None
         return None
 
@@ -330,69 +337,84 @@ class RedisExternalOAuthProviderConfigStore(AbstractExternalOAuthProviderConfigS
         client = await self._get_client()
         await client.delete(self._get_config_key(entity_id, provider_name))
 
-    async def load_all_provider_configs_for_entity(self, entity_id: str) -> list[OAuthProviderSettings]:
+    async def load_all_provider_configs_for_entity(
+        self, entity_id: str
+    ) -> list[OAuthProviderSettings]:
         """Load all OAuth provider configurations for a specific entity."""
         client = await self._get_client()
-        
+
         # Scan for all keys matching the entity's provider config pattern
         keys = [
-            k.decode("utf-8") 
-            async for k in client.scan_iter(match=self._get_entity_configs_pattern(entity_id))
+            k.decode("utf-8")
+            async for k in client.scan_iter(
+                match=self._get_entity_configs_pattern(entity_id)
+            )
         ]
-        
+
         configs: list[OAuthProviderSettings] = []
         if not keys:
             return configs
-            
+
         for key_str in keys:
             data_bytes = await client.get(key_str)
             if data_bytes:
                 try:
-                    configs.append(OAuthProviderSettings.model_validate_json(data_bytes.decode("utf-8")))
+                    configs.append(
+                        OAuthProviderSettings.model_validate_json(
+                            data_bytes.decode("utf-8")
+                        )
+                    )
                 except Exception as e:
-                    logger.error(f"Error deserializing config from key '{key_str}': {e}")
-                    
+                    logger.error(
+                        f"Error deserializing config from key '{key_str}': {e}"
+                    )
+
         return configs
 
 
 class RedisUserExternalTokenStore(AbstractUserExternalTokenStore):
     """
     Redis-based storage for external OAuth tokens obtained from external providers.
-    
+
     Stores tokens per user and provider for multi-tenant support.
     """
+
     _redis_client: Optional[aioredis.Redis] = None
     TOKEN_STORAGE_TTL_SECONDS: Optional[int] = 3600 * 24 * 90  # 90 days
 
     def __init__(self, token_ttl: Optional[int] = None):
         if token_ttl is not None:
             self.TOKEN_STORAGE_TTL_SECONDS = token_ttl
-        logger.info(f"RedisUserExternalTokenStore initialized. TTL: {self.TOKEN_STORAGE_TTL_SECONDS}s.")
+        logger.info(
+            f"RedisUserExternalTokenStore initialized. TTL: {self.TOKEN_STORAGE_TTL_SECONDS}s."
+        )
 
     async def initialize(self) -> None:
         """Establish Redis connection with configured parameters."""
         if self._redis_client:
             return
-            
+
         connection_params = {
             "host": plexus_global_settings.redis_host,
             "port": plexus_global_settings.redis_port,
             "db": plexus_global_settings.redis_db,
             "decode_responses": False,
         }
-        
+
         if plexus_global_settings.redis_password:
             connection_params["password"] = plexus_global_settings.redis_password
-            
+
         try:
             self._redis_client = aioredis.Redis(**connection_params)
             await self._redis_client.ping()
             logger.info("RedisUserExternalTokenStore: Successfully connected to Redis.")
         except Exception as e:
-            logger.error(f"RedisUserExternalTokenStore: Failed to connect: {e}", exc_info=True)
+            logger.error(
+                f"RedisUserExternalTokenStore: Failed to connect: {e}", exc_info=True
+            )
             self._redis_client = None
             raise
-            
+
     async def teardown(self) -> None:
         """Clean up Redis connection."""
         if self._redis_client:
@@ -411,66 +433,66 @@ class RedisUserExternalTokenStore(AbstractUserExternalTokenStore):
         return f"plexus:oauth:external_token:{entity_id}:{user_id}:{provider_name}"
 
     async def save_user_external_token(
-        self, 
-        entity_id: str, 
-        user_id: str, 
-        provider_name: str, 
-        token_data: Dict[str, Any]
+        self,
+        entity_id: str,
+        user_id: str,
+        provider_name: str,
+        token_data: Dict[str, Any],
     ) -> None:
         """Store external OAuth token data for a user."""
         try:
             client = await self._get_client()
             key = self._get_token_key(entity_id, user_id, provider_name)
-            
+
             # Serialize token data to JSON
             token_json = json.dumps(token_data)
-            
+
             # Store with TTL
             await client.setex(key, self.TOKEN_STORAGE_TTL_SECONDS, token_json)
-            logger.debug(f"Stored external token for {entity_id}:{user_id}:{provider_name}")
-            
+            logger.debug(
+                f"Stored external token for {entity_id}:{user_id}:{provider_name}"
+            )
+
         except Exception as e:
             logger.error(f"Error storing external token: {e}", exc_info=True)
             raise
 
     async def load_user_external_token(
-        self, 
-        entity_id: str, 
-        user_id: str, 
-        provider_name: str
+        self, entity_id: str, user_id: str, provider_name: str
     ) -> Optional[Dict[str, Any]]:
         """Retrieve external OAuth token data for a user."""
         try:
             client = await self._get_client()
             key = self._get_token_key(entity_id, user_id, provider_name)
-            
+
             token_json = await client.get(key)
             if token_json is None:
                 return None
-                
+
             # Deserialize from JSON
-            token_data = json.loads(token_json.decode('utf-8'))
-            logger.debug(f"Loaded external token for {entity_id}:{user_id}:{provider_name}")
+            token_data = json.loads(token_json.decode("utf-8"))
+            logger.debug(
+                f"Loaded external token for {entity_id}:{user_id}:{provider_name}"
+            )
             return token_data
-            
+
         except Exception as e:
             logger.error(f"Error loading external token: {e}", exc_info=True)
             return None
 
     async def delete_user_external_token(
-        self, 
-        entity_id: str, 
-        user_id: str, 
-        provider_name: str
+        self, entity_id: str, user_id: str, provider_name: str
     ) -> None:
         """Remove external OAuth token data for a user."""
         try:
             client = await self._get_client()
             key = self._get_token_key(entity_id, user_id, provider_name)
-            
+
             await client.delete(key)
-            logger.debug(f"Deleted external token for {entity_id}:{user_id}:{provider_name}")
-            
+            logger.debug(
+                f"Deleted external token for {entity_id}:{user_id}:{provider_name}"
+            )
+
         except Exception as e:
             logger.error(f"Error deleting external token: {e}", exc_info=True)
             raise
@@ -479,7 +501,9 @@ class RedisUserExternalTokenStore(AbstractUserExternalTokenStore):
 # Global store instances for singleton pattern
 _token_store_instance: Optional[AbstractOAuthTokenStore] = None
 _auth_code_store_instance: Optional[AbstractAuthCodeStore] = None
-_external_oauth_provider_config_store_instance: Optional[AbstractExternalOAuthProviderConfigStore] = None
+_external_oauth_provider_config_store_instance: Optional[
+    AbstractExternalOAuthProviderConfigStore
+] = None
 _internal_oauth_client_store_instance: Optional[AbstractOAuthClientStore] = None
 _user_external_token_store_instance: Optional[AbstractUserExternalTokenStore] = None
 
@@ -487,11 +511,11 @@ _user_external_token_store_instance: Optional[AbstractUserExternalTokenStore] = 
 async def get_oauth_token_store() -> AbstractOAuthTokenStore:
     """
     Factory function to get the configured OAuth token store instance.
-    
+
     Returns a singleton instance based on the storage_backend setting.
     """
     global _token_store_instance
-    
+
     if _token_store_instance is None:
         if plexus_global_settings.storage_backend == "sqlite":
             logger.info("Using SQLiteOAuthTokenStore for internal OAuth tokens.")
@@ -501,19 +525,21 @@ async def get_oauth_token_store() -> AbstractOAuthTokenStore:
             _token_store_instance = RedisOAuthTokenStore()
             await _token_store_instance.initialize()
         else:
-            raise ValueError(f"Unsupported storage_backend for internal OAuth tokens: {plexus_global_settings.storage_backend}")
-            
+            raise ValueError(
+                f"Unsupported storage_backend for internal OAuth tokens: {plexus_global_settings.storage_backend}"
+            )
+
     return _token_store_instance
 
 
 async def get_auth_code_store() -> AbstractAuthCodeStore:
     """
     Factory function to get the configured auth code store instance.
-    
+
     Returns a singleton instance based on the storage_backend setting.
     """
     global _auth_code_store_instance
-    
+
     if _auth_code_store_instance is None:
         if plexus_global_settings.storage_backend == "sqlite":
             logger.info("Using SQLiteAuthCodeStore for internal OAuth auth codes.")
@@ -523,64 +549,86 @@ async def get_auth_code_store() -> AbstractAuthCodeStore:
             _auth_code_store_instance = RedisAuthCodeStore()
             await _auth_code_store_instance.initialize()
         else:
-            raise ValueError(f"Unsupported storage_backend for internal OAuth auth codes: {plexus_global_settings.storage_backend}")
-            
+            raise ValueError(
+                f"Unsupported storage_backend for internal OAuth auth codes: {plexus_global_settings.storage_backend}"
+            )
+
     return _auth_code_store_instance
 
 
-async def get_external_oauth_provider_config_store() -> AbstractExternalOAuthProviderConfigStore:
+async def get_external_oauth_provider_config_store() -> (
+    AbstractExternalOAuthProviderConfigStore
+):
     """
     Factory function to get the configured external OAuth provider config store instance.
-    
+
     Returns a singleton instance based on the storage_backend setting.
     """
     global _external_oauth_provider_config_store_instance
-    
+
     if _external_oauth_provider_config_store_instance is None:
         if plexus_global_settings.storage_backend == "sqlite":
-            logger.info("Using SQLiteExternalOAuthProviderConfigStore for external provider configs.")
-            _external_oauth_provider_config_store_instance = await get_sqlite_external_oauth_provider_config_store()
+            logger.info(
+                "Using SQLiteExternalOAuthProviderConfigStore for external provider configs."
+            )
+            _external_oauth_provider_config_store_instance = (
+                await get_sqlite_external_oauth_provider_config_store()
+            )
         elif plexus_global_settings.storage_backend == "redis":
-            logger.info("Using RedisExternalOAuthProviderConfigStore for external provider configs.")
-            _external_oauth_provider_config_store_instance = RedisExternalOAuthProviderConfigStore()
+            logger.info(
+                "Using RedisExternalOAuthProviderConfigStore for external provider configs."
+            )
+            _external_oauth_provider_config_store_instance = (
+                RedisExternalOAuthProviderConfigStore()
+            )
             await _external_oauth_provider_config_store_instance.initialize()
         else:
-            raise ValueError(f"Unsupported storage_backend for external provider configs: {plexus_global_settings.storage_backend}")
-            
+            raise ValueError(
+                f"Unsupported storage_backend for external provider configs: {plexus_global_settings.storage_backend}"
+            )
+
     return _external_oauth_provider_config_store_instance
 
 
 async def get_internal_oauth_client_store() -> AbstractOAuthClientStore:
     """
     Factory function to get the configured internal OAuth client store instance.
-    
+
     Returns a singleton instance based on the storage_backend setting.
     Note: Redis implementation is not yet available, falls back to SQLite.
     """
     global _internal_oauth_client_store_instance
-    
+
     if _internal_oauth_client_store_instance is None:
         if plexus_global_settings.storage_backend == "sqlite":
             logger.info("Using SQLiteOAuthClientStore for internal OAuth clients.")
-            _internal_oauth_client_store_instance = await get_sqlite_internal_oauth_client_store()
+            _internal_oauth_client_store_instance = (
+                await get_sqlite_internal_oauth_client_store()
+            )
         elif plexus_global_settings.storage_backend == "redis":
             # Redis implementation not yet available, fallback to SQLite
-            logger.error("RedisOAuthClientStore is not yet implemented. Falling back to SQLite for internal clients.")
-            _internal_oauth_client_store_instance = await get_sqlite_internal_oauth_client_store()
+            logger.error(
+                "RedisOAuthClientStore is not yet implemented. Falling back to SQLite for internal clients."
+            )
+            _internal_oauth_client_store_instance = (
+                await get_sqlite_internal_oauth_client_store()
+            )
         else:
-            raise ValueError(f"Unsupported storage_backend for internal OAuth clients: {plexus_global_settings.storage_backend}")
-            
+            raise ValueError(
+                f"Unsupported storage_backend for internal OAuth clients: {plexus_global_settings.storage_backend}"
+            )
+
     return _internal_oauth_client_store_instance
 
 
 async def get_user_external_token_store() -> AbstractUserExternalTokenStore:
     """
     Factory function to get the configured user external token store instance.
-    
+
     Returns a singleton instance based on the storage_backend setting.
     """
     global _user_external_token_store_instance
-    
+
     if _user_external_token_store_instance is None:
         if plexus_global_settings.storage_backend == "sqlite":
             # For now, use Redis even for SQLite backend since SQLite implementation doesn't exist
@@ -592,8 +640,10 @@ async def get_user_external_token_store() -> AbstractUserExternalTokenStore:
             _user_external_token_store_instance = RedisUserExternalTokenStore()
             await _user_external_token_store_instance.initialize()
         else:
-            raise ValueError(f"Unsupported storage_backend for external OAuth tokens: {plexus_global_settings.storage_backend}")
-            
+            raise ValueError(
+                f"Unsupported storage_backend for external OAuth tokens: {plexus_global_settings.storage_backend}"
+            )
+
     return _user_external_token_store_instance
 
 

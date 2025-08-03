@@ -11,6 +11,10 @@ from pathlib import Path
 import uvicorn
 from dotenv import load_dotenv
 
+# Import after environment setup
+from mcp_plexus.main import app
+from mcp_plexus.tool_loader import load_tools_from_integrations  # noqa: E402
+
 # Add the project root to Python path
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
@@ -24,19 +28,12 @@ if env_file.exists():
 else:
     print(f"Warning: .env file not found at {env_file}")
 
-# Import after environment setup
-from mcp_plexus.main import app  # noqa: E402
-from mcp_plexus.tool_loader import load_tools_from_integrations  # noqa: E402
-
 
 async def main():
     """Initialize and start the development server."""
     try:
         # Load tools from integrations
         await load_tools_from_integrations()
-
-        # Import the FastAPI app
-        from mcp_plexus.main import app
 
         return app
 

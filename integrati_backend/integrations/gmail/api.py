@@ -7,7 +7,7 @@ from typing import Dict, Any, List, Optional
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
 
-from .auth import GmailAuth
+from .unified_auth import UnifiedGmailAuth
 from mcp_plexus.oauth.errors import PlexusExternalAuthRequiredError
 
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ class GmailAPI:
         """Initialize Gmail API wrapper."""
         self.entity_id = entity_id
         self.user_id = user_id
-        self.auth = GmailAuth(entity_id, user_id)
+        self.auth = UnifiedGmailAuth(entity_id, user_id, prefer_tenant_level=True)
         self.service = None
 
     async def _get_service(self):
@@ -29,7 +29,9 @@ class GmailAPI:
             credentials = await self.auth.get_valid_credentials()
             if not credentials:
                 raise PlexusExternalAuthRequiredError(
-                    "Gmail integration not authenticated"
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="gmail",
+                    detail_message="Gmail integration not authenticated",
                 )
 
             self.service = build("gmail", "v1", credentials=credentials)
@@ -69,7 +71,11 @@ class GmailAPI:
             return detailed_messages
         except HttpError as e:
             if e.resp.status == 401:
-                raise PlexusExternalAuthRequiredError("Gmail authentication expired")
+                raise PlexusExternalAuthRequiredError(
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="gmail",
+                    detail_message="Gmail authentication expired",
+                )
             raise Exception(f"Gmail API error: {e}")
         except Exception as e:
             logger.error(f"Error searching Gmail messages: {e}")
@@ -89,7 +95,11 @@ class GmailAPI:
             return self._parse_message(message)
         except HttpError as e:
             if e.resp.status == 401:
-                raise PlexusExternalAuthRequiredError("Gmail authentication expired")
+                raise PlexusExternalAuthRequiredError(
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="gmail",
+                    detail_message="Gmail authentication expired",
+                )
             raise Exception(f"Gmail API error: {e}")
         except Exception as e:
             logger.error(f"Error getting Gmail message: {e}")
@@ -129,7 +139,11 @@ class GmailAPI:
             }
         except HttpError as e:
             if e.resp.status == 401:
-                raise PlexusExternalAuthRequiredError("Gmail authentication expired")
+                raise PlexusExternalAuthRequiredError(
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="gmail",
+                    detail_message="Gmail authentication expired",
+                )
             raise Exception(f"Gmail API error: {e}")
         except Exception as e:
             logger.error(f"Error sending Gmail message: {e}")
@@ -163,7 +177,11 @@ class GmailAPI:
             return self._parse_message(message)
         except HttpError as e:
             if e.resp.status == 401:
-                raise PlexusExternalAuthRequiredError("Gmail authentication expired")
+                raise PlexusExternalAuthRequiredError(
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="gmail",
+                    detail_message="Gmail authentication expired",
+                )
             raise Exception(f"Gmail API error: {e}")
         except Exception as e:
             logger.error(f"Error getting last received email: {e}")
@@ -184,7 +202,11 @@ class GmailAPI:
             return results.get("resultSizeEstimate", 0)
         except HttpError as e:
             if e.resp.status == 401:
-                raise PlexusExternalAuthRequiredError("Gmail authentication expired")
+                raise PlexusExternalAuthRequiredError(
+                    authorization_url="https://accounts.google.com/o/oauth2/auth",
+                    provider_name="gmail",
+                    detail_message="Gmail authentication expired",
+                )
             raise Exception(f"Gmail API error: {e}")
         except Exception as e:
             logger.error(f"Error getting unread count: {e}")
