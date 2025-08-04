@@ -7,7 +7,7 @@ from .models import PlexusUserAuthTokenData
 class AbstractPlexusUserAuthTokenStore(ABC):
     """
     Abstract base class defining the interface for user authentication token storage.
-    
+
     This interface provides methods for managing authentication tokens including
     creation, retrieval, updates, and deletion. Implementations should handle
     the underlying storage mechanism (database, cache, etc.).
@@ -19,12 +19,16 @@ class AbstractPlexusUserAuthTokenStore(ABC):
         pass
 
     @abstractmethod
-    async def get_token_data_by_hash(self, token_hash: str) -> Optional[PlexusUserAuthTokenData]:
+    async def get_token_data_by_hash(
+        self, token_hash: str
+    ) -> Optional[PlexusUserAuthTokenData]:
         """Retrieve token data using the token hash as identifier."""
         pass
-    
+
     @abstractmethod
-    async def get_token_data_by_user_id(self, entity_id: str, persistent_user_id: str) -> Optional[PlexusUserAuthTokenData]:
+    async def get_token_data_by_user_id(
+        self, entity_id: str, persistent_user_id: str
+    ) -> Optional[PlexusUserAuthTokenData]:
         """Retrieve token data using entity and user identifiers."""
         pass
 
@@ -34,10 +38,12 @@ class AbstractPlexusUserAuthTokenStore(ABC):
         pass
 
     @abstractmethod
-    async def delete_token_data_by_user_id(self, entity_id: str, persistent_user_id: str) -> None:
+    async def delete_token_data_by_user_id(
+        self, entity_id: str, persistent_user_id: str
+    ) -> None:
         """Remove token data from storage using entity and user identifiers."""
         pass
-        
+
     @abstractmethod
     async def update_token_last_used(self, token_hash: str) -> None:
         """Update the last used timestamp for token activity tracking."""

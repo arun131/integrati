@@ -20,8 +20,8 @@ def _get_session_store_logger():
     if _session_store_logger_instance is None:
         _session_store_logger_instance = logging.getLogger(__name__)
         effective_level = (
-            logging.DEBUG 
-            if plexus_global_settings.debug_mode 
+            logging.DEBUG
+            if plexus_global_settings.debug_mode
             else plexus_global_settings.plexus_fastmcp_log_level.upper()
         )
         _session_store_logger_instance.setLevel(effective_level)
@@ -32,27 +32,27 @@ class AbstractSessionStore(ABC):
     """
     Abstract base class defining the interface for session storage implementations.
     """
-    
+
     @abstractmethod
     async def load_session(self, session_key: str) -> Optional[SessionData]:
         """Load session data by session key."""
         pass
-    
+
     @abstractmethod
     async def save_session(self, session_data: SessionData) -> None:
         """Save session data to storage."""
         pass
-    
+
     @abstractmethod
     async def delete_session(self, session_key: str) -> None:
         """Delete session data by session key."""
         pass
-    
+
     @abstractmethod
     async def initialize(self) -> None:
         """Initialize the session store."""
         pass
-    
+
     @abstractmethod
     async def teardown(self) -> None:
         """Clean up session store resources."""
@@ -74,14 +74,14 @@ class RedisPlexusSessionStore(AbstractSessionStore):
     """
     Redis-based implementation of session storage with automatic TTL management.
     """
-    
+
     _redis_client: Optional[aioredis.Redis] = None
     SESSION_TTL_SECONDS: int = 3600 * 24  # Default 24 hours
 
     def __init__(self, session_ttl_seconds: Optional[int] = None):
         """
         Initialize Redis session store with optional custom TTL.
-        
+
         Args:
             session_ttl_seconds: Custom TTL for sessions, defaults to 24 hours
         """
@@ -111,13 +111,13 @@ class RedisPlexusSessionStore(AbstractSessionStore):
         }
         if plexus_global_settings.redis_password:
             connection_params["password"] = plexus_global_settings.redis_password
-        
+
         logger = _get_session_store_logger()
         logger.info(
             f"Connecting to Redis at {connection_params['host']}:"
             f"{connection_params['port']}, DB: {connection_params['db']}"
         )
-        
+
         try:
             self._redis_client = aioredis.Redis(**connection_params)
             await self._redis_client.ping()
@@ -143,7 +143,7 @@ class RedisPlexusSessionStore(AbstractSessionStore):
     async def _get_client(self) -> aioredis.Redis:
         """
         Returns the Redis client, ensuring it's properly initialized.
-        
+
         Raises:
             RuntimeError: If client is not initialized
         """
@@ -159,43 +159,47 @@ class RedisPlexusSessionStore(AbstractSessionStore):
     async def load_session(self, session_key: str) -> Optional[SessionData]:
         """
         Loads session data from Redis by key.
-        
+
         Args:
             session_key: The Redis key to load session data from
-            
+
         Returns:
             SessionData object if found and valid, None otherwise
         """
         client = await self._get_client()
         logger = _get_session_store_logger()
         logger.debug(f"Attempting to load session for key: '{session_key}'")
-        
+
         try:
             session_json_bytes = await client.get(session_key)
-            
+
             if session_json_bytes:
                 try:
                     session_json_str = session_json_bytes.decode("utf-8")
                     session_data_obj = SessionData.model_validate_json(session_json_str)
-                    logger.debug(f"Successfully loaded session for key: '{session_key}'")
+                    logger.debug(
+                        f"Successfully loaded session for key: '{session_key}'"
+                    )
                     return session_data_obj
                 except Exception as e:
                     logger.error(
-                        f"Error deserializing session for key {session_key}: {e}", 
-                        exc_info=True
+                        f"Error deserializing session for key {session_key}: {e}",
+                        exc_info=True,
                     )
                     return None
             else:
                 logger.debug(f"No session found for key: '{session_key}'")
                 return None
         except Exception as e:
-            logger.error(f"Error loading session for key {session_key}: {e}", exc_info=True)
+            logger.error(
+                f"Error loading session for key {session_key}: {e}", exc_info=True
+            )
             return None
 
     async def save_session(self, session_data: SessionData) -> None:
         """
         Saves session data to Redis with automatic TTL.
-        
+
         Args:
             session_data: SessionData object to save
         """
@@ -206,29 +210,29 @@ class RedisPlexusSessionStore(AbstractSessionStore):
 
         client = await self._get_client()
         logger = _get_session_store_logger()
-        
+
         session_key = self._construct_redis_key(
             session_data.entity_id, session_data.mcp_session_id
         )
-        
+
         logger.debug(f"Attempting to save session for key: '{session_key}'")
-        
+
         try:
             # Update last accessed timestamp
             session_data.touch()
-            
+
             # Serialize to JSON and encode for Redis storage
             session_json_str = session_data.model_dump_json()
-            
+
             set_result = await client.set(
                 session_key,
                 session_json_str.encode("utf-8"),
                 ex=self.SESSION_TTL_SECONDS,
             )
-            
+
             # Verify the save operation was successful
             exists_after_set = await client.exists(session_key)
-            
+
             if set_result and exists_after_set:
                 logger.debug(
                     f"Successfully saved session for key: '{session_key}', "
@@ -241,19 +245,21 @@ class RedisPlexusSessionStore(AbstractSessionStore):
                 )
 
         except Exception as e:
-            logger.error(f"Error saving session for key {session_key}: {e}", exc_info=True)
+            logger.error(
+                f"Error saving session for key {session_key}: {e}", exc_info=True
+            )
 
     async def delete_session(self, session_key: str) -> None:
         """
         Deletes session data from Redis by key.
-        
+
         Args:
             session_key: The Redis key to delete
         """
         client = await self._get_client()
         logger = _get_session_store_logger()
         logger.debug(f"Deleting session for key: {session_key}")
-        
+
         try:
             deleted_count = await client.delete(session_key)
             if deleted_count > 0:
@@ -261,4 +267,6 @@ class RedisPlexusSessionStore(AbstractSessionStore):
             else:
                 logger.info(f"No session found to delete for key: {session_key}")
         except Exception as e:
-            logger.error(f"Error deleting session for key {session_key}: {e}", exc_info=True)
+            logger.error(
+                f"Error deleting session for key {session_key}: {e}", exc_info=True
+            )

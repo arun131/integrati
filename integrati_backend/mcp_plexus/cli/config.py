@@ -9,7 +9,7 @@ from pathlib import Path
 project_root = Path(__file__).parent.parent.parent.resolve()
 
 # Load environment variables from .env file, overriding system environment variables
-load_dotenv(dotenv_path=project_root / '.env', override=True)
+load_dotenv(dotenv_path=project_root / ".env", override=True)
 
 # API configuration for CLI client communication
 PLEXUS_CLI_API_BASE_URL = os.getenv("PLEXUS_CLI_API_BASE_URL", "http://127.0.0.1:8000")

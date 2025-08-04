@@ -6,4 +6,4 @@ if TYPE_CHECKING:
 
 # Global singleton instance for the MCPPlexusServer
 # This will be populated by tenant_mcp_app.py after the FastMCP instance is ready
-PLEXUS_SERVER_INSTANCE: Optional['MCPPlexusServer'] = None
+PLEXUS_SERVER_INSTANCE: Optional["MCPPlexusServer"] = None

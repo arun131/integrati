@@ -24,18 +24,20 @@ class SQLiteTenantStore(AbstractTenantStore):
         """Clean up resources. Connection is managed globally so no action needed."""
         logger.info("SQLiteTenantStore teardown (connection managed globally).")
 
-    async def _execute_query(self, query: str, params: tuple = (), commit: bool = True) -> sqlite3.Cursor:
+    async def _execute_query(
+        self, query: str, params: tuple = (), commit: bool = True
+    ) -> sqlite3.Cursor:
         """
         Execute a SQL query with proper error handling and transaction management.
-        
+
         Args:
             query: SQL query string
             params: Query parameters tuple
             commit: Whether to commit the transaction
-            
+
         Returns:
             sqlite3.Cursor: The cursor after query execution
-            
+
         Raises:
             sqlite3.Error: If query execution fails
         """
@@ -65,46 +67,52 @@ class SQLiteTenantStore(AbstractTenantStore):
     def _row_to_tenant_in_db(self, row: Optional[sqlite3.Row]) -> Optional[TenantInDB]:
         """
         Convert a database row to a TenantInDB object.
-        
+
         Handles datetime parsing and JSON deserialization with error recovery.
         """
         if not row:
             return None
-        
+
         try:
             # Handle datetime conversion - SQLite may store as string or datetime
             created_at = row["created_at"]
             if isinstance(created_at, str):
                 created_at = datetime.fromisoformat(created_at.replace("Z", "+00:00"))
-            
+
             return TenantInDB(
                 entity_id=row["entity_id"],
                 tenant_name=row["tenant_name"],
                 status=row["status"],
                 created_at=created_at,
-                settings_json=json.loads(row["settings_json"]) if row["settings_json"] else {}
+                settings_json=json.loads(row["settings_json"])
+                if row["settings_json"]
+                else {},
             )
         except Exception as e:
-            logger.error(f"Error converting row to TenantInDB: {row}. Error: {e}", exc_info=True)
+            logger.error(
+                f"Error converting row to TenantInDB: {row}. Error: {e}", exc_info=True
+            )
             return None
 
     async def create_tenant(self, tenant_create: TenantCreate) -> TenantInDB:
         """
         Create a new tenant in the database.
-        
+
         Args:
             tenant_create: Tenant creation data
-            
+
         Returns:
             TenantInDB: The created tenant with generated timestamp
-            
+
         Raises:
             ValueError: If tenant with same entity_id already exists
         """
         # Check for existing tenant to prevent duplicates
         existing = await self.get_tenant_by_entity_id(tenant_create.entity_id)
         if existing:
-            raise ValueError(f"Tenant with entity_id '{tenant_create.entity_id}' already exists.")
+            raise ValueError(
+                f"Tenant with entity_id '{tenant_create.entity_id}' already exists."
+            )
 
         created_at_dt = datetime.now(timezone.utc)
         created_at_iso = created_at_dt.isoformat()
@@ -119,24 +127,24 @@ class SQLiteTenantStore(AbstractTenantStore):
             tenant_create.tenant_name,
             tenant_create.status,
             created_at_iso,
-            settings_str
+            settings_str,
         )
-        
+
         await self._execute_query(query, params)
-        
+
         return TenantInDB(
             entity_id=tenant_create.entity_id,
             tenant_name=tenant_create.tenant_name,
             status=tenant_create.status,
             created_at=created_at_dt,
-            settings_json=tenant_create.settings_json or {}
+            settings_json=tenant_create.settings_json or {},
         )
 
     async def get_tenant_by_entity_id(self, entity_id: str) -> Optional[TenantInDB]:
         """Retrieve a tenant by its entity ID."""
         query = """
-            SELECT entity_id, tenant_name, status, created_at, settings_json 
-            FROM plexus_tenants 
+            SELECT entity_id, tenant_name, status, created_at, settings_json
+            FROM plexus_tenants
             WHERE entity_id = ?
         """
         row = await self._fetchone(query, (entity_id,))
@@ -145,36 +153,39 @@ class SQLiteTenantStore(AbstractTenantStore):
     async def list_tenants(self, skip: int = 0, limit: int = 100) -> List[TenantInDB]:
         """
         Retrieve a paginated list of tenants ordered by creation date (newest first).
-        
+
         Args:
             skip: Number of records to skip for pagination
             limit: Maximum number of records to return
-            
+
         Returns:
             List of TenantInDB objects, excluding any that failed to parse
         """
         query = """
-            SELECT entity_id, tenant_name, status, created_at, settings_json 
-            FROM plexus_tenants 
-            ORDER BY created_at DESC 
+            SELECT entity_id, tenant_name, status, created_at, settings_json
+            FROM plexus_tenants
+            ORDER BY created_at DESC
             LIMIT ? OFFSET ?
         """
         rows = await self._fetchall(query, (limit, skip))
-        
+
         # Filter out None values from failed conversions
         return [
-            tenant for row in rows 
+            tenant
+            for row in rows
             if (tenant := self._row_to_tenant_in_db(row)) is not None
         ]
 
-    async def update_tenant(self, entity_id: str, tenant_update: TenantUpdate) -> Optional[TenantInDB]:
+    async def update_tenant(
+        self, entity_id: str, tenant_update: TenantUpdate
+    ) -> Optional[TenantInDB]:
         """
         Update an existing tenant with partial data.
-        
+
         Args:
             entity_id: The tenant's entity ID
             tenant_update: Partial update data (only set fields will be updated)
-            
+
         Returns:
             Updated TenantInDB object or None if tenant not found
         """
@@ -197,7 +208,9 @@ class SQLiteTenantStore(AbstractTenantStore):
             else:
                 params.append(value)
 
-        query = f"UPDATE plexus_tenants SET {', '.join(set_clauses)} WHERE entity_id = ?"
+        query = (
+            f"UPDATE plexus_tenants SET {', '.join(set_clauses)} WHERE entity_id = ?"
+        )
         params.append(entity_id)
 
         await self._execute_query(query, tuple(params))
@@ -206,7 +219,7 @@ class SQLiteTenantStore(AbstractTenantStore):
     async def delete_tenant(self, entity_id: str) -> bool:
         """
         Delete a tenant by entity ID.
-        
+
         Returns:
             bool: True if a tenant was deleted, False if no tenant found
         """
@@ -222,7 +235,7 @@ _sqlite_tenant_store_instance: Optional[SQLiteTenantStore] = None
 async def get_sqlite_tenant_store() -> SQLiteTenantStore:
     """
     Get or create the singleton SQLiteTenantStore instance.
-    
+
     Ensures only one instance exists and is properly initialized.
     """
     global _sqlite_tenant_store_instance

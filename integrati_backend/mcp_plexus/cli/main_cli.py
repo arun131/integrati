@@ -4,9 +4,7 @@ from . import admin_cli
 
 # Main CLI application with help enabled when no arguments are provided
 app = typer.Typer(
-    name="plexus", 
-    help="MCP Plexus Command Line Interface.", 
-    no_args_is_help=True
+    name="plexus", help="MCP Plexus Command Line Interface.", no_args_is_help=True
 )
 
 # Register admin commands under 'admin' subcommand

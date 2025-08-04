@@ -7,7 +7,7 @@ from datetime import datetime, timezone
 class SessionData(BaseModel):
     """
     Represents the data stored for an MCP Plexus session.
-    
+
     This model encapsulates all session-related information including
     identifiers, timestamps, internal data, and authentication tokens.
     """
@@ -15,14 +15,11 @@ class SessionData(BaseModel):
     mcp_session_id: str = Field(
         description="The unique MCP session identifier provided by the client or server."
     )
-    entity_id: str = Field(
-        description="The tenant identifier for this session."
-    )
-    
+    entity_id: str = Field(description="The tenant identifier for this session.")
+
     # Enables user tracking across multiple sessions for better continuity
     persistent_user_id: Optional[str] = Field(
-        default=None, 
-        description="A stable identifier for the user across sessions."
+        default=None, description="A stable identifier for the user across sessions."
     )
 
     created_at: datetime = Field(default_factory=lambda: datetime.now(timezone.utc))
@@ -45,7 +42,7 @@ class SessionData(BaseModel):
     def touch(self) -> None:
         """
         Updates the updated_at timestamp to current UTC time.
-        
+
         Used to track when session data was last modified without
         requiring explicit timestamp management in calling code.
         """

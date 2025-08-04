@@ -5,7 +5,7 @@
 The Integrati backend has been refactored from a **user-level OAuth** system to a **tenant-level OAuth** system with **multiple configs/profiles** per tenant. This provides a more realistic and scalable architecture where:
 
 - **One human user = One tenant** with multiple profiles/configurations
-- **OAuth tokens are shared** across all configs within a tenant  
+- **OAuth tokens are shared** across all configs within a tenant
 - **Simplified OAuth management** - authorize once, use everywhere
 - **Better UX** - no need to re-authenticate for each config
 
@@ -18,7 +18,7 @@ The Integrati backend has been refactored from a **user-level OAuth** system to 
 Tenant → Multiple Users → Each User has OAuth tokens
 ```
 
-### **After (New Architecture)**  
+### **After (New Architecture)**
 ```
 Tenant (Human User) → Multiple Configs/Profiles → Tenant has OAuth tokens (shared across all configs)
 ```
@@ -72,7 +72,7 @@ POST /admin/tenants/
 ```
 **Response:** Returns `entity_id` for the new tenant
 
-### **2. System Creates Base Config** 
+### **2. System Creates Base Config**
 ```http
 POST /{entity_id}/plexus-auth/register-base-config
 ```
@@ -80,7 +80,7 @@ POST /{entity_id}/plexus-auth/register-base-config
 - Generates auth token for the base config
 - Config ID: `"base"`, serves as the default profile
 
-### **3. Tenant Initiates OAuth** 
+### **3. Tenant Initiates OAuth**
 ```http
 GET /gmail/login
 Authorization: Bearer {plexus_user_auth_token}
@@ -114,7 +114,7 @@ POST /{entity_id}/configs/
 # Create tenant
 POST /admin/tenants/
 
-# List tenants  
+# List tenants
 GET /admin/tenants/
 
 # Get specific tenant
@@ -170,7 +170,7 @@ Authorization: Bearer {plexus_user_auth_token}
 # List integrations (supports both architectures)
 GET /integrations
 
-# Get integration status  
+# Get integration status
 GET /integrations/{integration_name}/status
 
 # Start OAuth flow (redirects to tenant-level)
@@ -192,7 +192,7 @@ DELETE /integrations/{integration_name}
 - Manages OAuth tokens at tenant level
 
 #### 2. **Tenant Config Store**
-- `AbstractTenantConfigStore` - Interface  
+- `AbstractTenantConfigStore` - Interface
 - `SQLiteTenantConfigStore` - SQLite implementation
 - Manages configs/profiles within tenants
 
@@ -214,7 +214,7 @@ mcp_plexus/
 │   ├── unified_token_service.py                 # NEW: Unified token access
 │   └── storage_interfaces.py                    # Updated with tenant interfaces
 ├── tenants/
-│   ├── sqlite_tenant_config_store.py            # NEW: Config storage  
+│   ├── sqlite_tenant_config_store.py            # NEW: Config storage
 │   ├── models.py                                # Updated with config models
 │   ├── storage_interfaces.py                    # Updated with config interfaces
 │   └── endpoints.py                             # Updated with config endpoints
@@ -238,13 +238,13 @@ mcp_plexus/
 - No need to re-authenticate for each config
 - Centralized token storage and refresh
 
-### ✅ **Realistic User Model** 
+### ✅ **Realistic User Model**
 - One human = one tenant with multiple profiles
 - Configs represent different personalities/settings
 - More intuitive than multiple "users" per tenant
 
 ### ✅ **Better Scalability**
-- Reduced OAuth API calls  
+- Reduced OAuth API calls
 - Fewer tokens to manage and refresh
 - Simplified permission model
 
@@ -254,7 +254,7 @@ mcp_plexus/
 - No OAuth re-authentication needed
 
 ### ✅ **Cleaner Architecture**
-- Clear separation: tenant (identity) vs config (preferences)  
+- Clear separation: tenant (identity) vs config (preferences)
 - Shared resources (OAuth) vs individual settings
 - More maintainable codebase
 
@@ -273,7 +273,7 @@ POST /admin/tenants/
     "status": "active"
 }
 
-# 2. Register base config  
+# 2. Register base config
 POST /tenant_123/plexus-auth/register-base-config
 Headers: X-Host-App-Secret: {secret}
 {
@@ -312,7 +312,7 @@ POST /tenant_123/configs/
 Headers: X-Admin-API-Key: {admin_key}
 {
     "entity_id": "tenant_123",
-    "config_id": "work_profile", 
+    "config_id": "work_profile",
     "config_name": "Work Profile",
     "config_type": "profile",
     "is_default": false,
@@ -332,7 +332,7 @@ from mcp_plexus.oauth.unified_token_service import get_unified_oauth_token_servi
 unified_service = await get_unified_oauth_token_service()
 tokens = await unified_service.get_oauth_tokens(
     entity_id="tenant_123",
-    user_id="base", 
+    user_id="base",
     provider_name="gmail",
     prefer_tenant_level=True  # Default
 )
@@ -341,7 +341,7 @@ tokens = await unified_service.get_oauth_tokens(
 success = await unified_service.save_oauth_tokens(
     entity_id="tenant_123",
     user_id="base",
-    provider_name="gmail", 
+    provider_name="gmail",
     token_data=token_data,
     use_tenant_level=True  # Default
 )
@@ -414,7 +414,7 @@ curl -X POST "http://localhost:8000/test_tenant/configs/" \
   -d '{
     "entity_id": "test_tenant",
     "config_id": "work_config",
-    "config_name": "Work Profile", 
+    "config_name": "Work Profile",
     "config_type": "profile",
     "is_default": false,
     "settings_json": {}
@@ -427,4 +427,4 @@ curl -X POST "http://localhost:8000/test_tenant/configs/" \
 
 This refactor provides a more realistic, scalable, and maintainable OAuth architecture that better reflects how users actually interact with the system. The tenant-level OAuth with multiple configs approach simplifies management while providing flexibility for different use cases and preferences.
 
-The implementation maintains backward compatibility and provides smooth migration paths, making it safe to deploy in production environments. 
+The implementation maintains backward compatibility and provides smooth migration paths, making it safe to deploy in production environments.

@@ -4,7 +4,7 @@ import logging
 from typing import Optional
 from datetime import datetime, timezone
 
-from .storage_interfaces import AbstractOAuthTokenStore 
+from .storage_interfaces import AbstractOAuthTokenStore
 from .models import AccessTokenData, RefreshTokenData
 from ..storage.sqlite_base import get_sqlite_db_connection
 
@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 class SQLiteOAuthTokenStore(AbstractOAuthTokenStore):
     """SQLite implementation of OAuth token storage for internal authentication."""
-    
+
     async def initialize(self) -> None:
         """Initialize the SQLite connection and ensure database is ready."""
         await get_sqlite_db_connection()
@@ -47,7 +47,9 @@ class SQLiteOAuthTokenStore(AbstractOAuthTokenStore):
             logger.error(f"SQLite error: {e}", exc_info=True)
             raise
 
-    def _row_to_access_token_data(self, row: Optional[sqlite3.Row]) -> Optional[AccessTokenData]:
+    def _row_to_access_token_data(
+        self, row: Optional[sqlite3.Row]
+    ) -> Optional[AccessTokenData]:
         """Convert database row to AccessTokenData object with error handling."""
         if not row:
             return None
@@ -57,7 +59,9 @@ class SQLiteOAuthTokenStore(AbstractOAuthTokenStore):
             logger.error(f"Error deserializing AccessTokenData: {e}", exc_info=True)
             return None
 
-    def _row_to_refresh_token_data(self, row: Optional[sqlite3.Row]) -> Optional[RefreshTokenData]:
+    def _row_to_refresh_token_data(
+        self, row: Optional[sqlite3.Row]
+    ) -> Optional[RefreshTokenData]:
         """Convert database row to RefreshTokenData object with error handling."""
         if not row:
             return None
@@ -69,28 +73,28 @@ class SQLiteOAuthTokenStore(AbstractOAuthTokenStore):
 
     async def save_access_token(self, access_token_data: AccessTokenData) -> None:
         """Store or update an access token with upsert logic."""
-        query = '''
+        query = """
             INSERT INTO internal_oauth_access_tokens (access_token, access_token_data, expires_at)
             VALUES (?, ?, ?)
             ON CONFLICT(access_token) DO UPDATE SET
                 access_token_data=excluded.access_token_data,
                 expires_at=excluded.expires_at
-        '''
+        """
         expires_at_iso = access_token_data.expires_at.isoformat()
         params = (
             access_token_data.access_token,
             access_token_data.model_dump_json(),
-            expires_at_iso
+            expires_at_iso,
         )
         await self._execute_query(query, params)
 
     async def load_access_token(self, access_token: str) -> Optional[AccessTokenData]:
         """Retrieve an access token only if it hasn't expired."""
-        query = '''
-            SELECT access_token_data 
-            FROM internal_oauth_access_tokens 
+        query = """
+            SELECT access_token_data
+            FROM internal_oauth_access_tokens
             WHERE access_token = ? AND expires_at > ?
-        '''
+        """
         now_iso = datetime.now(timezone.utc).isoformat()
         row = await self._fetchone(query, (access_token, now_iso))
         return self._row_to_access_token_data(row)
@@ -102,19 +106,21 @@ class SQLiteOAuthTokenStore(AbstractOAuthTokenStore):
 
     async def save_refresh_token(self, refresh_token_data: RefreshTokenData) -> None:
         """Store or update a refresh token with upsert logic."""
-        query = '''
+        query = """
             INSERT INTO internal_oauth_refresh_tokens (refresh_token, refresh_token_data)
             VALUES (?, ?)
             ON CONFLICT(refresh_token) DO UPDATE SET
                 refresh_token_data=excluded.refresh_token_data
-        '''
+        """
         params = (
             refresh_token_data.refresh_token,
-            refresh_token_data.model_dump_json()
+            refresh_token_data.model_dump_json(),
         )
         await self._execute_query(query, params)
 
-    async def load_refresh_token(self, refresh_token: str) -> Optional[RefreshTokenData]:
+    async def load_refresh_token(
+        self, refresh_token: str
+    ) -> Optional[RefreshTokenData]:
         """Retrieve a refresh token from storage."""
         query = "SELECT refresh_token_data FROM internal_oauth_refresh_tokens WHERE refresh_token = ?"
         row = await self._fetchone(query, (refresh_token,))

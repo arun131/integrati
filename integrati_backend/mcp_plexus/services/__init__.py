@@ -15,7 +15,7 @@ from .decorators import requires_api_key
 # Define public API for this module
 __all__ = [
     "UserApiKeySubmissionRequest",
-    "StoredUserExternalApiKey", 
+    "StoredUserExternalApiKey",
     "UserExternalApiKeyService",
     "user_services_router",
     "requires_api_key",

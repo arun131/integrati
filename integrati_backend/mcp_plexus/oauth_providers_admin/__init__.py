@@ -11,7 +11,4 @@ from .service import ExternalOAuthProviderService
 from .endpoints import external_oauth_providers_admin_router
 
 # Export public interface for the OAuth providers admin module
-__all__ = [
-    "ExternalOAuthProviderService",
-    "external_oauth_providers_admin_router"
-]
+__all__ = ["ExternalOAuthProviderService", "external_oauth_providers_admin_router"]

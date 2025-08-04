@@ -13,7 +13,7 @@ from .session_manager import PlexusSessionManager
 # Export public API components for session management
 __all__ = [
     "SessionData",
-    "AbstractSessionStore", 
+    "AbstractSessionStore",
     "RedisPlexusSessionStore",
     "PlexusSessionManager",
 ]

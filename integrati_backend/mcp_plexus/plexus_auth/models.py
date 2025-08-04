@@ -5,6 +5,7 @@ from typing import Optional
 
 class UserRegistrationRequest(BaseModel):
     """Request model for user registration containing host application user identifier."""
+
     user_id_from_host_app: str = Field(
         description="A unique and stable user identifier provided by the host application."
     )
@@ -13,6 +14,7 @@ class UserRegistrationRequest(BaseModel):
 
 class PlexusUserAuthTokenResponse(BaseModel):
     """Response model containing generated authentication token and user information."""
+
     plexus_user_auth_token: str = Field(
         description="The generated Plexus User Auth Token for the user."
     )
@@ -24,6 +26,7 @@ class PlexusUserAuthTokenResponse(BaseModel):
 
 class PlexusUserAuthTokenData(BaseModel):
     """Internal model for storing user authentication token data in the system."""
+
     entity_id: str
     persistent_user_id: str
     token_hash: str  # Store hash of the token for security
