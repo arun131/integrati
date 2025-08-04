@@ -64,7 +64,7 @@ jobs:
         # Install ruff for linting
         pip install ruff
         # Run ruff linting
-        ruff check mcp_plexus/ --output-format=text
+        ruff check mcp_plexus/ --output-format=full
         ruff format --check mcp_plexus/
 
     - name: Run unit tests with coverage
