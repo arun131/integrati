@@ -42,7 +42,7 @@ jobs:
       uses: actions/cache@v4
       with:
         path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('backend/requirements*.txt') }}
+        key: ${{ runner.os }}-pip-${{ matrix.python-version }}-${{ hashFiles('integrati_backend/requirements*.txt') }}
         restore-keys: |
           ${{ runner.os }}-pip-${{ matrix.python-version }}-
 
@@ -52,30 +52,30 @@ jobs:
         sudo apt-get install -y sqlite3
 
     - name: Install Python dependencies
-      working-directory: ./backend
+      working-directory: ./integrati_backend
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
         pip install -r requirements-test.txt
 
     - name: Install and run Ruff linting
-      working-directory: ./backend
+      working-directory: ./integrati_backend
       run: |
         # Install ruff for linting
         pip install ruff
         # Run ruff linting
-        ruff check app/ --output-format=text
-        ruff format --check app/
+        ruff check mcp_plexus/ --output-format=text
+        ruff format --check mcp_plexus/
 
     - name: Run unit tests with coverage
-      working-directory: ./backend
+      working-directory: ./integrati_backend
       run: |
-        python -m pytest tests/unit/ -v --cov=app --cov-report=xml --cov-report=term-missing --cov-fail-under=55
+        python -m pytest tests/unit/ -v --cov=mcp_plexus --cov-report=xml --cov-report=term-missing --cov-fail-under=55
 
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v4
       with:
-        file: ./backend/coverage.xml
+        file: ./integrati_backend/coverage.xml
         flags: backend
         name: backend-coverage
         fail_ci_if_error: false
@@ -86,8 +86,8 @@ jobs:
       with:
         name: test-results-${{ matrix.python-version }}
         path: |
-          backend/.pytest_cache/
-          backend/htmlcov/
+          integrati_backend/.pytest_cache/
+          integrati_backend/htmlcov/
         retention-days: 30
 
   security:
@@ -108,7 +108,7 @@ jobs:
         python-version: '3.12'
 
     - name: Install dependencies
-      working-directory: ./backend
+      working-directory: ./integrati_backend
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
@@ -116,10 +116,10 @@ jobs:
         pip install bandit safety
 
     - name: Run security checks
-      working-directory: ./backend
+      working-directory: ./integrati_backend
       run: |
         # Run bandit for security vulnerabilities
-        bandit -r app/ -f json -o bandit-report.json || true
+        bandit -r mcp_plexus/ -f json -o bandit-report.json || true
 
         # Run safety for known vulnerabilities
         safety check --json --output safety-report.json || true
@@ -130,6 +130,6 @@ jobs:
       with:
         name: security-reports
         path: |
-          backend/bandit-report.json
-          backend/safety-report.json
+          integrati_backend/bandit-report.json
+          integrati_backend/safety-report.json
         retention-days: 30
