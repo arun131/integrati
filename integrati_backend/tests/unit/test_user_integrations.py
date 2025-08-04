@@ -27,14 +27,26 @@ from fastmcp import FastMCP
 def _tmp_db_path(monkeypatch):
     """Creates a temporary file and points settings.sqlite_db_path to it."""
 
-    fd, db_str = tempfile.mkstemp(suffix=".db")
-    Path(db_str).unlink()  # remove the zero-byte file so sqlite can create it
+    # Create a temporary directory with proper permissions
+    temp_dir = tempfile.mkdtemp()
+    db_str = str(Path(temp_dir) / "test.db")
 
     # Patch settings variable used by storage layer
     from mcp_plexus.settings import settings as plexus_settings
 
     monkeypatch.setattr(plexus_settings, "sqlite_db_path", db_str, raising=False)
-    return db_str
+
+    # Clean up the global connection to force a new one
+    import mcp_plexus.storage.sqlite_base as sqlite_base
+
+    sqlite_base._db_connection = None
+
+    yield db_str
+
+    # Cleanup
+    import shutil
+
+    shutil.rmtree(temp_dir, ignore_errors=True)
 
 
 @pytest.mark.asyncio
@@ -86,9 +98,11 @@ async def test_tool_aggregation_empty(tmp_db_path):
 async def test_tool_aggregation_after_integration(tmp_db_path):
     """After inserting a connected integration, Gmail tools appear."""
 
+    # Get a fresh connection and initialize the database
     conn: sqlite3.Connection = await get_sqlite_db_connection()
     await init_sqlite_db(conn)
 
+    # Insert test data
     cur = conn.cursor()
     cur.execute(
         """
@@ -97,7 +111,8 @@ async def test_tool_aggregation_after_integration(tmp_db_path):
         """
     )
     conn.commit()
-    conn.close()  # Close the connection to release the file
+
+    # Don't close the connection as it's managed globally
 
     # Create a new FastMCP instance for testing
     fastmcp_instance = FastMCP()
