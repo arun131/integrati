@@ -29,8 +29,7 @@ jobs:
     - name: Lint backend code
       working-directory: ./integrati_backend
       run: |
-        python -m ruff check mcp_plexus/ --output-format=full
-        python -m ruff format --check mcp_plexus/
+        python -m ruff check .
 
     - name: Setup Node.js
       uses: actions/setup-node@v4
