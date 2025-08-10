@@ -1,5 +1,5 @@
 version = 1
-revision = 2
+revision = 3
 requires-python = ">=3.11"
 resolution-markers = [
     "python_full_version >= '3.13'",
@@ -333,7 +333,7 @@ version = "3.22.3"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "attrs" },
-    { name = "docstring-parser", marker = "python_full_version < '4.0'" },
+    { name = "docstring-parser", marker = "python_full_version < '4'" },
     { name = "rich" },
     { name = "rich-rst" },
 ]
@@ -944,7 +944,7 @@ requires-dist = [
     { name = "redis", specifier = ">=6.2.0" },
     { name = "requests", specifier = ">=2.32.0" },
     { name = "sqlalchemy", specifier = "==2.0.32" },
-    { name = "typer", specifier = ">=0.16.0" },
+    { name = "typer", extras = ["all"], specifier = ">=0.16.0" },
     { name = "uvicorn", extras = ["standard"], specifier = ">=0.30.0" },
 ]
 
