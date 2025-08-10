@@ -5,9 +5,9 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "integrati_backend"
 version = "0.1.0"
-description = "Multi-tenant, multi-user MCP backend with integrations"
+description = "Integrati - MCP based personal assistant with background agents"
 authors = [
-    {name = "Integrati Team", email = "team@integrati.com"}
+    {name = "Integrati Team", email = "arun7569raj@gmail.com"}
 ]
 readme = "README.md"
 requires-python = ">=3.11"
