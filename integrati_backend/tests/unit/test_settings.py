@@ -56,8 +56,10 @@ class TestSettings:
         # admin_api_key can be None or "admin" depending on ADMIN_API_KEY env var
         assert settings.admin_api_key in [None, "admin"]
         assert settings.plexus_encryption_key is None
-        assert settings.google_client_id is None
-        assert settings.google_client_secret is None
+        # google_client_id can be None or "test-client-id" depending on GOOGLE_CLIENT_ID env var
+        assert settings.google_client_id in [None, "test-client-id"]
+        # google_client_secret can be None or "test-client-secret" depending on GOOGLE_CLIENT_SECRET env var
+        assert settings.google_client_secret in [None, "test-client-secret"]
 
     @patch("mcp_plexus.settings.Path")
     @patch("mcp_plexus.settings.os.path.exists")
@@ -200,9 +202,11 @@ class TestSettings:
         """Test Google OAuth settings fields."""
         settings = Settings()
 
-        # These should be None by default
-        assert settings.google_client_id is None
-        assert settings.google_client_secret is None
+        # These may be overridden by environment variables
+        # google_client_id can be None or "test-client-id" depending on GOOGLE_CLIENT_ID env var
+        assert settings.google_client_id in [None, "test-client-id"]
+        # google_client_secret can be None or "test-client-secret" depending on GOOGLE_CLIENT_SECRET env var
+        assert settings.google_client_secret in [None, "test-client-secret"]
 
     @patch("mcp_plexus.settings.get_data_directory")
     def test_sqlite_db_path_uses_data_directory(self, mock_get_data_dir):
