@@ -1,30 +1,29 @@
 # Integrati Backend
 
-A multi-tenant, multi-user MCP (Model Context Protocol) backend system built on top of `mcp_plexus` with integrations for Gmail, Calendar, and common math tools.
+A multi-tenant, multi-user MCP (Model Context Protocol) backend system with integrations for Gmail, Calendar, and some common tools.
 
 ## 🚀 Features
 
-- **Multi-tenant Architecture**: Support for multiple independent tenants
-- **Multi-user Support**: User management with Firebase authentication
+- **Multi-user Architecture**: Support for multiple independent users
+- **Multi-config Support**: Config management per user with Firebase authentication
 - **MCP Protocol**: Full MCP server implementation with FastMCP 2.10
 - **Integration Framework**: Extensible integration system for external services
 - **OAuth Support**: Secure OAuth 2.0 flows for Gmail and Calendar
 - **Analytics**: Comprehensive logging and analytics system
 - **Docker Support**: Containerized deployment with Docker Compose
-- **uv Package Management**: Fast Python package management with uv
 
 ## 🏗️ Architecture
 
 ```
 integrati_backend/
-├── mcp_plexus/          # Core MCP server implementation
+├── mcp_plexus/           # Core MCP server implementation
 ├── integrations/         # External service integrations
-│   ├── common/          # Math tools (add, subtract, etc.)
-│   ├── gmail/           # Gmail API integration
-│   └── calendar/        # Google Calendar integration
+│   ├── common/           # Math tools (add, subtract, etc.)
+│   ├── gmail/            # Gmail API integration
+│   └── calendar/         # Google Calendar integration
 ├── frontend_integration/ # Frontend API endpoints
-├── analytics/           # Analytics and logging system
-└── data/               # Persistent data storage
+├── analytics/            # Analytics and logging system
+└── data/                 # Persistent data storage
 ```
 
 ## 🛠️ Development Setup
@@ -32,10 +31,41 @@ integrati_backend/
 ### Prerequisites
 
 - **Docker & Docker Compose** (for containerized development)
-- **uv** (for local development): `curl -LsSf https://astral.sh/uv/install.sh | sh`
-- **Redis** (for local development)
+- **python 3.11 or above** (for local development):
+- **install uv for python package management**: `pip install uv`
+- **Redis** (for local development): included in the docker compose setup
 
 ### Quick Start with Docker (Recommended)
+
+To quickly start the backend using Docker, ensure you have Docker and Docker Compose installed.
+
+1. **Clone the repository and navigate to the project root:**
+   ```bash
+   git clone <repo-url>
+   cd integrati_backend
+   ```
+
+2. **Build and start the backend and dependencies using Docker Compose:**
+   ```bash
+   docker compose up --build
+   ```
+
+   This command will:
+   - Build the backend image using the provided `Dockerfile` in the `integrati_backend` directory
+   - Start all required services (including Redis) as defined in your `docker-compose.yml`
+
+3. **Access the backend API:**
+   - Open [http://localhost:8000](http://localhost:8000) in your browser or API client.
+   - API Docs [http://localhost:8000/docs](http://localhost:8000/docs)
+
+4. **To stop the services:**
+   ```bash
+   docker compose down
+   ```
+
+_The Dockerfile in the `integrati_backend` folder is used to build the backend service image. All dependencies and environment setup are handled automatically by Docker Compose._
+
+### Developer Start with python
 
 1. **Clone and navigate to the project**:
    ```bash
@@ -59,9 +89,11 @@ integrati_backend/
 
 ### Local Development with uv
 
-1. **Install uv** (if not already installed):
+1. **Install uv and setup virtual env** (if not already installed):
    ```bash
-   curl -LsSf https://astral.sh/uv/install.sh | sh
+   pip install uv
+   uv venv
+   source .venv/bin/activate
    ```
 
 2. **Run local development setup**:

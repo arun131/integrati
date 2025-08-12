@@ -16,7 +16,7 @@ echo "📁 Backend directory: $SCRIPT_DIR"
 # Check if uv is installed
 if ! command -v uv &> /dev/null; then
     echo "❌ uv is not installed. Please install uv first:"
-    echo "   curl -LsSf https://astral.sh/uv/install.sh | sh"
+    echo "   pip install uv"
     exit 1
 fi
 
@@ -86,13 +86,21 @@ fi
 # Change to backend directory
 cd "$SCRIPT_DIR"
 
-# Create virtual environment and install dependencies with uv
-echo "🐍 Setting up Python virtual environment with uv..."
-uv venv
+# Create or load Python virtual environment with uv
+if [ ! -d ".venv" ]; then
+    echo "🐍 Creating Python virtual environment with uv..."
+    uv venv
+else
+    echo "🐍 Python virtual environment already exists. Loading..."
+fi
 
-# Install dependencies
-echo "📦 Installing dependencies with uv..."
-uv pip install -r requirements.txt
+# Activate the virtual environment
+# shellcheck disable=SC1091
+source .venv/bin/activate
+
+# Install all dependencies in the loaded venv using uv add
+echo "📦 Installing dependencies with uv add..."
+uv add -r requirements.txt
 
 echo "🎉 Setup complete!"
 echo ""
