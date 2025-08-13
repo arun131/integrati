@@ -199,6 +199,7 @@ cython_debug/
 # ----------------------------
 node_modules/
 frontend/node_modules/
+
 # CRA / Vite / Next build outputs
 frontend/build/
 frontend/dist/
@@ -207,6 +208,9 @@ frontend/.next/
 # Frontend environment files
 frontend/.env
 frontend/.env.*
+
+# Environment files
+.envfilled
 
 # Logs
 *.log

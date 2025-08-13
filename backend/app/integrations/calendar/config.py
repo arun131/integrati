@@ -1,1 +1,0 @@
-CALENDAR_REDIRECT_URI = "http://localhost:8000/integrations/calendar/auth/callback"

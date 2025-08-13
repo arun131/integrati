@@ -1,1 +1,0 @@
-# Gmail integration tests package

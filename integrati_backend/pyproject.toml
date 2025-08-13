@@ -1,0 +1,103 @@
+[build-system]
+requires = ["setuptools>=61.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "integrati_backend"
+version = "0.1.0"
+description = "Integrati - MCP based personal assistant with background agents"
+authors = [
+    {name = "Integrati Team", email = "arun7569raj@gmail.com"}
+]
+readme = "README.md"
+requires-python = ">=3.11"
+dependencies = [
+    "fastapi>=0.111.0",
+    "uvicorn[standard]>=0.30.0",
+    "fastmcp>=2.10.0",
+    "redis>=6.2.0",
+    "pydantic-settings>=2.10.0",
+    "python-dotenv>=1.0.0",
+    "httpx>=0.28.0",
+    "requests>=2.32.0",
+    "typer[all]>=0.16.0",
+    "cryptography>=45.0.0",
+    "google-api-python-client==2.130.0",
+    "google-auth-oauthlib==1.2.0",
+    "google-auth-httplib2==0.2.0",
+    "sqlalchemy==2.0.32",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+    "firebase-admin==6.5.0",
+    "mcp>=1.12.0",
+    "click>=8.2.0",
+    "anyio>=4.9.0",
+    "langchain-mcp-adapters>=0.1.0",
+    "langchain-openai>=0.3.0",
+    "langchain-google-genai>=2.1.0",
+    "langgraph>=0.5.0",
+]
+
+[project.scripts]
+integrati-backend = "run_dev:main"
+
+[tool.setuptools.packages.find]
+include = [
+    "mcp_plexus*",
+    "integrations*",
+    "frontend_integration*",
+    "analytics*"
+]
+
+[tool.setuptools.package-data]
+"*" = ["*.py", "*.toml", "*.txt", "*.md"]
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7.0.0",
+    "pytest-asyncio>=0.21.0",
+    "black>=23.0.0",
+    "isort>=5.12.0",
+    "flake8>=6.0.0",
+    "mypy>=1.0.0",
+]
+
+[tool.black]
+line-length = 88
+target-version = ['py311']
+
+[tool.isort]
+profile = "black"
+line_length = 88
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+disallow_untyped_defs = true
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+]
+ignore = [
+    "E501",  # line too long, handled by black
+    "B008",  # do not perform function calls in argument defaults
+    "C901",  # too complex
+    "UP",    # pyupgrade - ignore for now
+    "I",     # isort - ignore for now
+    "B",     # flake8-bugbear - ignore for now
+    "C4",    # flake8-comprehensions - ignore for now
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+skip-magic-trailing-comma = false
+line-ending = "auto"
