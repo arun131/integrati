@@ -136,7 +136,8 @@ export const tenantApi = {
     },
 
     disconnectCalendar: async (entityId) => {
-        const response = await api.delete(`/${entityId}/calendar/disconnect`);
+        // Use the unified integrations endpoint
+        const response = await api.delete('/integrations/calendar');
         return response.data;
     },
 

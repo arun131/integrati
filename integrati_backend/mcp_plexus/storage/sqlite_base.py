@@ -211,6 +211,34 @@ async def init_sqlite_db(conn: Optional[sqlite3.Connection] = None):
     """)
     logger.info("Ensured 'user_external_api_keys' table exists.")
 
+    # Push-only watcher states for integrations (provider-agnostic naming)
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS integration_watchers (
+        entity_id TEXT NOT NULL,
+        provider_name TEXT NOT NULL,
+        identity_key TEXT NOT NULL,
+        state_json TEXT NOT NULL DEFAULT '{}',
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (entity_id, provider_name, identity_key)
+    )
+    """)
+    logger.info("Ensured 'integration_watchers' table exists.")
+
+    # Reverse lookup for webhook notifications where Google supplies channel/resource IDs
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS integration_webhook_keys (
+        provider_name TEXT NOT NULL,
+        external_key TEXT NOT NULL,
+        entity_id TEXT NOT NULL,
+        identity_key TEXT NOT NULL,
+        created_at TEXT NOT NULL,
+        updated_at TEXT NOT NULL,
+        PRIMARY KEY (provider_name, external_key)
+    )
+    """)
+    logger.info("Ensured 'integration_webhook_keys' table exists.")
+
     db_conn.commit()
     logger.info("SQLite database schema initialized/verified.")
 

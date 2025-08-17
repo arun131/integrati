@@ -240,9 +240,6 @@ marimo/_static/
 marimo/_lsp/
 __marimo__/
 
-# Google OAuth credentials
-backend/app/credentials.json
-
-backend/firebase-service-account.json
 
 python-sdk/
+integrati_backend/integrati-app-pubsub-loginkey.json

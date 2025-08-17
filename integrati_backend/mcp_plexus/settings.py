@@ -127,6 +127,20 @@ class Settings(BaseSettings):
         default=None, description="Google OAuth client secret for Gmail integration."
     )
 
+    # Google push notification configuration
+    gmail_pubsub_topic: Optional[str] = Field(
+        default=None,
+        description="Full Pub/Sub topic name for Gmail push notifications, e.g. 'projects/<project>/topics/<topic>'.",
+    )
+    webhook_public_base_url: Optional[str] = Field(
+        default=None,
+        description="Public base URL used to construct webhook callback addresses, e.g. 'https://api.example.com'.",
+    )
+    calendar_webhook_path: str = Field(
+        default="/webhooks/google/calendar",
+        description="Path for Google Calendar webhook endpoint relative to base URL.",
+    )
+
     model_config = SettingsConfigDict(
         env_file=DOTENV_PATH if DOTENV_PATH.exists() else None,
         extra="ignore",
