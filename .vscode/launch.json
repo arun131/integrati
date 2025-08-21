@@ -28,6 +28,14 @@
             "env": {
                 "PYTHONPATH": "${workspaceFolder}/integrati_backend"
             }
+        },
+        {
+            "name": "Python: Run run_dev.py with venv",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${workspaceFolder}/integrati_backend/run_dev.py",
+            "python": "${workspaceFolder}/integrati_backend/.venv/bin/python",
+            "console": "integratedTerminal"
         }
     ]
 }
