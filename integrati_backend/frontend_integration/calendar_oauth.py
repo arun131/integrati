@@ -11,6 +11,8 @@ import requests
 from mcp_plexus.plexus_auth.dependencies import get_current_plexus_user_from_token
 from mcp_plexus.oauth.storage import get_tenant_external_token_store
 from analytics.logger import log_integration_event
+from integrations.common.watchers import WatcherKey
+from integrations.calendar.watcher import CalendarWatcher
 
 logger = logging.getLogger(__name__)
 
@@ -32,8 +34,8 @@ def get_google_auth_flow(redirect_uri: str, scopes: list) -> Flow:
         f"CALENDAR DEBUG: Creating OAuth flow with redirect_uri={redirect_uri}, scopes={scopes}"
     )
 
-    client_id = os.getenv("GMAIL_CLIENT_ID")
-    client_secret = os.getenv("GMAIL_CLIENT_SECRET")
+    client_id = os.getenv("CALENDAR_CLIENT_ID")
+    client_secret = os.getenv("CALENDAR_CLIENT_SECRET")
     logger.info(f"CALENDAR DEBUG: Using client_id={client_id}")
     logger.info(
         f"CALENDAR DEBUG: Using client_secret={'*' * len(client_secret) if client_secret else 'None'}"
@@ -84,8 +86,8 @@ async def calendar_login(
         logger.info(f"CALENDAR DEBUG: redirect_uri={redirect_uri}")
 
         # Get client credentials
-        client_id = os.getenv("GMAIL_CLIENT_ID")
-        client_secret = os.getenv("GMAIL_CLIENT_SECRET")
+        client_id = os.getenv("CALENDAR_CLIENT_ID")
+        client_secret = os.getenv("CALENDAR_CLIENT_SECRET")
         logger.info(f"CALENDAR DEBUG: client_id={client_id}")
         logger.info(
             f"CALENDAR DEBUG: client_secret={'*' * len(client_secret) if client_secret else 'None'}"
@@ -195,8 +197,8 @@ async def calendar_callback(request: Request):
         )
 
         token_data = {
-            "client_id": os.getenv("GMAIL_CLIENT_ID"),
-            "client_secret": os.getenv("GMAIL_CLIENT_SECRET"),
+            "client_id": os.getenv("CALENDAR_CLIENT_ID"),
+            "client_secret": os.getenv("CALENDAR_CLIENT_SECRET"),
             "code": code,
             "grant_type": "authorization_code",
             "redirect_uri": redirect_uri,
@@ -220,6 +222,37 @@ async def calendar_callback(request: Request):
 
         logger.info(f"Calendar tokens stored for tenant: {entity_id}")
 
+        # NEW: Mark connector as connected in user_integrations table
+        try:
+            from mcp_plexus.storage.sqlite_base import get_sqlite_db_connection
+            from datetime import datetime
+
+            db_conn = await get_sqlite_db_connection()
+            cursor = db_conn.cursor()
+            now_iso = datetime.utcnow().isoformat()
+            cursor.execute(
+                """
+                INSERT INTO user_integrations (entity_id, connector, status, connected_at, revoked_at)
+                VALUES (?, 'calendar', 'connected', ?, NULL)
+                ON CONFLICT(entity_id, connector) DO UPDATE SET
+                    status='connected',
+                    connected_at=excluded.connected_at,
+                    revoked_at=NULL;
+                """,
+                (entity_id, now_iso),
+            )
+            db_conn.commit()
+            logger.info(
+                "'calendar' marked as connected in user_integrations table for E:%s",
+                entity_id,
+            )
+        except Exception as db_e:
+            logger.error(
+                "Failed to update user_integrations for calendar: %s",
+                db_e,
+                exc_info=True,
+            )
+
         # Log the successful OAuth completion
         await log_integration_event(
             entity_id=entity_id,
@@ -237,6 +270,17 @@ async def calendar_callback(request: Request):
         logger.info(
             f"Calendar OAuth completed successfully, redirecting to: {redirect_url}"
         )
+
+        # Ensure watcher registration (push-only) using a tenant-level identity key
+        try:
+            key = WatcherKey(
+                provider_name="calendar",
+                entity_id=entity_id,
+                identity_key="tenant_base",
+            )
+            await CalendarWatcher().ensure_registered(key)
+        except Exception as e:
+            logger.error(f"Failed to ensure Calendar watcher for {entity_id}: {e}")
 
         return RedirectResponse(redirect_url)
 

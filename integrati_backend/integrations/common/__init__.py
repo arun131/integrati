@@ -1,3 +1,8 @@
-"""Common integration package for basic tools."""
+"""Common integration utilities and base interfaces for integrations."""
 
-# Import tools only when needed to avoid circular imports
+# Import lazily to avoid circular dependencies
+try:
+    from .watchers import BaseIntegrationWatcher  # noqa: F401
+except Exception:
+    # Watcher base may not be imported during partial app init
+    pass

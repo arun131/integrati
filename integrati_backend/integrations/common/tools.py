@@ -5,6 +5,19 @@ from typing import List
 
 logger = logging.getLogger(__name__)
 
+# Tool names for smart categorization
+COMMON_TOOL_NAMES = [
+    "add_numbers",
+    "subtract_numbers",
+    "multiply_numbers",
+    "divide_numbers",
+    "calculate_power",
+    "calculate_square_root",
+    "calculate_percentage",
+    "sum_list",
+    "calculate_average",
+]
+
 
 def get_plexus_instance():
     """Get the PLEXUS_SERVER_INSTANCE lazily to avoid import issues."""

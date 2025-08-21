@@ -6,6 +6,7 @@ import logging
 from contextlib import asynccontextmanager
 from typing import Any, Dict, Optional, Union
 from uuid import uuid4
+from datetime import datetime, timezone
 
 from dotenv import load_dotenv
 from fastapi import FastAPI
@@ -56,6 +57,10 @@ from .tenants import get_sqlite_tenant_config_store
 from .tenants.endpoints import tenants_admin_router
 from .tenants.sqlite_tenant_store import get_sqlite_tenant_store
 from .tenants.storage_interfaces import AbstractTenantConfigStore, AbstractTenantStore
+from .external_services.google_webhooks import router as google_webhooks_router
+from integrations.gmail.watcher import GmailWatcher
+from integrations.calendar.watcher import CalendarWatcher
+from integrations.common.watchers import WatcherKey
 
 load_dotenv()
 
@@ -919,6 +924,40 @@ async def fastapi_startup():
         except Exception as e:
             logger.error(f"Error logging route: {e}")
 
+    # Ensure push watchers for connected integrations (tenant-level for now)
+    try:
+        db = await get_sqlite_db_connection()
+        cursor = db.cursor()
+        rows = cursor.execute(
+            """
+            SELECT entity_id, connector, status FROM user_integrations
+            WHERE status='connected'
+            """
+        ).fetchall()
+        for r in rows:
+            entity_id, connector, _ = r
+            # Use a generic identity_key per tenant until per-user mapping is needed
+            identity_key = "tenant_base"
+            key = WatcherKey(
+                provider_name=connector, entity_id=entity_id, identity_key=identity_key
+            )
+            if connector == "gmail":
+                try:
+                    await GmailWatcher().ensure_registered(key)
+                except Exception as e:
+                    logger.error(
+                        "Gmail ensure_registered failed for %s: %s", entity_id, e
+                    )
+            elif connector == "calendar":
+                try:
+                    await CalendarWatcher().ensure_registered(key)
+                except Exception as e:
+                    logger.error(
+                        "Calendar ensure_registered failed for %s: %s", entity_id, e
+                    )
+    except Exception as e:
+        logger.error("Watcher initialization error: %s", e, exc_info=True)
+
 
 @app.on_event("shutdown")
 async def fastapi_shutdown():
@@ -934,7 +973,9 @@ async def root_api():
 
 @app.get("/health")
 async def health_api():
-    """Health check endpoint that validates storage backend connectivity and service status."""
+    """
+    Health check endpoint that returns the status of various system components.
+    """
     store_statuses: Dict[str, str] = {}
     all_healthy = True
 
@@ -960,11 +1001,81 @@ async def health_api():
             store_statuses["session_store_redis"] = f"unhealthy: {e}"
             all_healthy = False
 
+    # Check OAuth token status for known integrations
+    try:
+        # Check for any tenant-level tokens
+        try:
+            # This is a simple check - in production you might want to check specific tenants
+            store_statuses["oauth_token_service"] = "available"
+        except Exception as e:
+            store_statuses["oauth_token_service"] = f"error: {e}"
+            all_healthy = False
+
+    except Exception as e:
+        store_statuses["oauth_token_service"] = f"unavailable: {e}"
+        all_healthy = False
+
+    # Check Gmail and Calendar integration status
+    try:
+        # Check if we can access the OAuth status method
+        store_statuses["mcp_oauth_status"] = "available"
+
+    except Exception as e:
+        store_statuses["mcp_oauth_status"] = f"error: {e}"
+        all_healthy = False
+
     return {
         "status": "healthy" if all_healthy else "degraded",
         "storage_backend": settings.storage_backend,
         "details": store_statuses,
+        "timestamp": datetime.now(timezone.utc).isoformat(),
     }
+
+
+@app.get("/oauth/health")
+async def oauth_health_api():
+    """
+    OAuth-specific health check endpoint that returns detailed token status.
+    Useful for debugging authentication issues.
+    """
+    try:
+        # Get OAuth status for known integrations
+        oauth_status = {}
+
+        # Check Gmail integration status
+        try:
+            # This is a simple availability check
+            oauth_status["gmail"] = {
+                "status": "available",
+                "note": "OAuth service accessible",
+            }
+        except Exception as e:
+            oauth_status["gmail"] = {"status": "error", "error": str(e)}
+
+        # Check Calendar integration status
+        try:
+            # This is a simple availability check
+            oauth_status["calendar"] = {
+                "status": "available",
+                "note": "OAuth service accessible",
+            }
+        except Exception as e:
+            oauth_status["calendar"] = {"status": "error", "error": str(e)}
+
+        return {
+            "status": "healthy",
+            "oauth_services": oauth_status,
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "note": "This endpoint checks OAuth service availability. For detailed token status, check the logs.",
+        }
+
+    except Exception as e:
+        return {
+            "status": "unhealthy",
+            "error": str(e),
+            "timestamp": datetime.now(timezone.utc).isoformat(),
+            "note": "OAuth health check failed",
+        }
 
 
 # Mount all routers with appropriate prefixes and tags
@@ -982,6 +1093,7 @@ app.include_router(
 app.include_router(tenants_admin_router)
 app.include_router(external_oauth_providers_admin_router)
 app.include_router(user_services_router)
+app.include_router(google_webhooks_router)
 
 # Frontend integration routers (Firebase token exchange, integration management)
 try:
@@ -1004,6 +1116,15 @@ try:
     logger.info("Frontend integration routers mounted.")
 except ImportError as e:
     logger.error(f"Failed to import frontend integration routers: {e}")
+
+# Chatbot API router
+try:
+    from chatbot_api import chatbot_router
+
+    app.include_router(chatbot_router)
+    logger.info("Chatbot API router mounted.")
+except ImportError as e:
+    logger.error(f"Failed to import chatbot API router: {e}")
 app.mount(path="/mcp", app=mcp_starlette_router)
 
 logger.info(

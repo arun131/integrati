@@ -11,6 +11,8 @@ import requests
 from mcp_plexus.plexus_auth.dependencies import get_current_plexus_user_from_token
 from mcp_plexus.oauth.storage import get_tenant_external_token_store
 from analytics.logger import log_integration_event
+from integrations.common.watchers import WatcherKey
+from integrations.gmail.watcher import GmailWatcher
 
 logger = logging.getLogger(__name__)
 
@@ -235,6 +237,15 @@ async def gmail_callback(request: Request):
         logger.info(
             f"Gmail OAuth completed successfully, redirecting to: {redirect_url}"
         )
+
+        # Ensure watcher registration (push-only) using a tenant-level identity key
+        try:
+            key = WatcherKey(
+                provider_name="gmail", entity_id=entity_id, identity_key="tenant_base"
+            )
+            await GmailWatcher().ensure_registered(key)
+        except Exception as e:
+            logger.error(f"Failed to ensure Gmail watcher for {entity_id}: {e}")
 
         return RedirectResponse(redirect_url)
 

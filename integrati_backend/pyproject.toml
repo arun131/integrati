@@ -10,32 +10,53 @@ authors = [
     {name = "Integrati Team", email = "arun7569raj@gmail.com"}
 ]
 readme = "README.md"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 dependencies = [
+    # Core web framework
     "fastapi>=0.111.0",
     "uvicorn[standard]>=0.30.0",
+
+    # MCP and FastMCP
     "fastmcp>=2.10.0",
+    "mcp>=1.12.0",
+
+    # Database and storage
     "redis>=6.2.0",
+    "sqlalchemy==2.0.32",
     "pydantic-settings>=2.10.0",
+
+    # Environment and configuration
     "python-dotenv>=1.0.0",
+
+    # HTTP client
     "httpx>=0.28.0",
-    "requests>=2.32.0",
+
+    # CLI tools
     "typer[all]>=0.16.0",
+
+    # HTTP requests (legacy, but still used)
+    "requests>=2.32.0",
+
+    # Security and encryption
     "cryptography>=45.0.0",
+    "python-jose[cryptography]==3.3.0",
+    "passlib[bcrypt]==1.7.4",
+
+    # Google services
     "google-api-python-client==2.130.0",
     "google-auth-oauthlib==1.2.0",
     "google-auth-httplib2==0.2.0",
-    "sqlalchemy==2.0.32",
-    "python-jose[cryptography]==3.3.0",
-    "passlib[bcrypt]==1.7.4",
+
+    # Firebase
     "firebase-admin==6.5.0",
-    "mcp>=1.12.0",
-    "click>=8.2.0",
+
+    # Async support
     "anyio>=4.9.0",
-    "langchain-mcp-adapters>=0.1.0",
-    "langchain-openai>=0.3.0",
-    "langchain-google-genai>=2.1.0",
-    "langgraph>=0.5.0",
+
+    # AI and DSPy - Latest version with Python 3.12+ support
+    "dspy-ai>=3.0.1",
+    "openai>=1.0.0,<2.0.0",
+    "litellm>=1.0.0,<2.0.0",
 ]
 
 [project.scripts]

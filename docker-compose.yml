@@ -40,15 +40,22 @@ services:
       - GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
       - CALENDAR_CLIENT_ID=${CALENDAR_CLIENT_ID}
       - CALENDAR_CLIENT_SECRET=${CALENDAR_CLIENT_SECRET}
+      - PUBSUB_TOPIC_NAME=${PUBSUB_TOPIC_NAME:-gmail-push-topic}
+      - PUBSUB_SUB_NAME=${PUBSUB_SUB_NAME:-gmail-push-sub}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DSPY_DEFAULT_LLM_MODEL=${DSPY_DEFAULT_LLM_MODEL}
+      - DSPY_OPENAI_MODEL=${DSPY_OPENAI_MODEL}
     volumes:
       - ./integrati_backend/data:/app/data
       - ./.env:/app/.env:ro
+      - ./integrati_backend/integrati-app-pubsub-loginkey.json:/app/integrati-app-pubsub-loginkey.json:ro
     depends_on:
       redis:
         condition: service_healthy
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
-      interval: 30s
+      interval: 90s
       timeout: 10s
       retries: 3
       start_period: 40s
@@ -59,11 +66,11 @@ services:
     ports:
       - "6380:6379"
     volumes:
-      - redis_data:/dat
+      - redis_data:/data
     command: redis-server --appendonly yes
     healthcheck:
       test: ["CMD", "redis-cli", "ping"]
-      interval: 30s
+      interval: 2s
       timeout: 10s
       retries: 3
 

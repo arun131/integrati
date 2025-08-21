@@ -12,6 +12,17 @@ from .api import GmailAPI
 
 logger = logging.getLogger(__name__)
 
+# Tool names for smart categorization
+GMAIL_TOOL_NAMES = [
+    "search_gmail_messages",
+    "get_last_received_email",
+    "send_gmail_message",
+    "get_gmail_message",
+    "get_unread_email_count",
+    "search_gmail_by_sender",
+    "search_gmail_by_subject",
+]
+
 
 class GmailTools:
     """Class containing Gmail operations as MCP tools."""
