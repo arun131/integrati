@@ -42,6 +42,10 @@ services:
       - CALENDAR_CLIENT_SECRET=${CALENDAR_CLIENT_SECRET}
       - PUBSUB_TOPIC_NAME=${PUBSUB_TOPIC_NAME:-gmail-push-topic}
       - PUBSUB_SUB_NAME=${PUBSUB_SUB_NAME:-gmail-push-sub}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - DSPY_DEFAULT_LLM_MODEL=${DSPY_DEFAULT_LLM_MODEL}
+      - DSPY_OPENAI_MODEL=${DSPY_OPENAI_MODEL}
     volumes:
       - ./integrati_backend/data:/app/data
       - ./.env:/app/.env:ro

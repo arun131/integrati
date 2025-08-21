@@ -149,7 +149,7 @@ export const tenantApi = {
         return response.data;
     },
 
-    createCalendarEvent: async (entityId, eventData) => {
+    createCalendarEvent: async (entityId, eventId, eventData) => {
         const response = await api.post(`/${entityId}/calendar/events`, eventData);
         return response.data;
     },
@@ -161,6 +161,80 @@ export const tenantApi = {
 
     deleteCalendarEvent: async (entityId, eventId) => {
         const response = await api.delete(`/${entityId}/calendar/events/${eventId}`);
+        return response.data;
+    }
+};
+
+// Chatbot API functions
+export const chatbotApi = {
+    // Create a new chat session
+    createNewChat: async (userId, tenantId, integrations = []) => {
+        const response = await api.post('/api/chatbot/new-chat', {
+            user_id: userId,
+            tenant_id: tenantId,
+            integrations: integrations
+        });
+        return response.data;
+    },
+
+    // Send a message to the chatbot
+    sendMessage: async (chatId, message, integrations = [], token = null) => {
+        const requestData = {
+            chat_id: chatId,
+            message: message,
+            integrations: integrations
+        };
+
+        // Add token if provided
+        if (token) {
+            requestData.token = token;
+        }
+
+        const response = await api.post('/api/chatbot/message', requestData);
+        return response.data;
+    },
+
+    // Continue an existing chat
+    continueChat: async (chatId, message, integrations = [], token = null) => {
+        const requestData = {
+            message: message,
+            integrations: integrations
+        };
+
+        // Add token if provided
+        if (token) {
+            requestData.token = token;
+        }
+
+        const response = await api.post(`/api/chatbot/chat/${chatId}/continue`, requestData);
+        return response.data;
+    },
+
+    // Get chat history
+    getChatHistory: async (chatId, limit = 50) => {
+        const response = await api.get(`/api/chatbot/chat/${chatId}/history`, {
+            params: { limit }
+        });
+        return response.data;
+    },
+
+    // Get user's chat sessions
+    getUserChats: async (userId, limit = 20) => {
+        const response = await api.get(`/api/chatbot/chats/${userId}`, {
+            params: { limit }
+        });
+        return response.data;
+    },
+
+    // Get chatbot status
+    getStatus: async () => {
+        const response = await api.get('/api/chatbot/status');
+        return response.data;
+    },
+
+    // Get storage statistics
+    getStorageStats: async () => {
+        const response = await api.get('/api/chatbot/storage/stats');
         return response.data;
     }
 };

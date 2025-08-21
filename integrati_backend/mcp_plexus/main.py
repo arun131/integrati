@@ -1116,6 +1116,15 @@ try:
     logger.info("Frontend integration routers mounted.")
 except ImportError as e:
     logger.error(f"Failed to import frontend integration routers: {e}")
+
+# Chatbot API router
+try:
+    from chatbot_api import chatbot_router
+
+    app.include_router(chatbot_router)
+    logger.info("Chatbot API router mounted.")
+except ImportError as e:
+    logger.error(f"Failed to import chatbot API router: {e}")
 app.mount(path="/mcp", app=mcp_starlette_router)
 
 logger.info(

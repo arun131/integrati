@@ -12,6 +12,17 @@ from .api import CalendarAPI
 
 logger = logging.getLogger(__name__)
 
+# Tool names for smart categorization
+CALENDAR_TOOL_NAMES = [
+    "get_calendar_events",
+    "create_calendar_event",
+    "update_calendar_event",
+    "delete_calendar_event",
+    "get_calendar_event",
+    "search_calendar_events",
+    "get_upcoming_events",
+]
+
 
 class CalendarTools:
     """Class containing Calendar operations as MCP tools."""

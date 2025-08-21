@@ -1,0 +1,80 @@
+services:
+  frontend:
+    build:
+      context: ./frontend
+      args:
+        - REACT_APP_FIREBASE_API_KEY=${REACT_APP_FIREBASE_API_KEY}
+        - REACT_APP_FIREBASE_AUTH_DOMAIN=${REACT_APP_FIREBASE_AUTH_DOMAIN}
+        - REACT_APP_FIREBASE_PROJECT_ID=${REACT_APP_FIREBASE_PROJECT_ID}
+        - REACT_APP_FIREBASE_STORAGE_BUCKET=${REACT_APP_FIREBASE_STORAGE_BUCKET}
+        - REACT_APP_FIREBASE_MESSAGING_SENDER_ID=${REACT_APP_FIREBASE_MESSAGING_SENDER_ID}
+        - REACT_APP_FIREBASE_APP_ID=${REACT_APP_FIREBASE_APP_ID}
+        - REACT_APP_BACKEND_URL=${REACT_APP_BACKEND_URL:-http://localhost:8000}
+        - REACT_APP_ADMIN_API_KEY=${REACT_APP_ADMIN_API_KEY}
+        - REACT_APP_DEBUG=${REACT_APP_DEBUG:-true}
+    ports:
+      - "3000:80"
+    depends_on:
+      - integrati-backend
+
+  # Debug version of integrati_backend service
+  integrati-backend:
+    build:
+      context: ./integrati_backend
+      dockerfile: Dockerfile.debug
+    ports:
+      - "8000:8000"
+      - "5678:5678"  # Debug port for VS Code
+    environment:
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=0
+      - STORAGE_BACKEND=redis
+      - DEBUG_MODE=true
+      - PLEXUS_FASTMCP_LOG_LEVEL=DEBUG
+      - ADMIN_API_KEY=${ADMIN_API_KEY}
+      - HOST_APP_REGISTRATION_SECRET=${HOST_APP_REGISTRATION_SECRET}
+      - FIREBASE_PROJECT_ID=${FIREBASE_PROJECT_ID}
+      - FIREBASE_PRIVATE_KEY_ID=${FIREBASE_PRIVATE_KEY_ID}
+      - FIREBASE_PRIVATE_KEY=${FIREBASE_PRIVATE_KEY}
+      - FIREBASE_CLIENT_EMAIL=${FIREBASE_CLIENT_EMAIL}
+      - FIREBASE_CLIENT_ID=${FIREBASE_CLIENT_ID}
+      - GMAIL_CLIENT_ID=${GMAIL_CLIENT_ID}
+      - GMAIL_CLIENT_SECRET=${GMAIL_CLIENT_SECRET}
+      - CALENDAR_CLIENT_ID=${CALENDAR_CLIENT_ID}
+      - CALENDAR_CLIENT_SECRET=${CALENDAR_CLIENT_SECRET}
+      - PUBSUB_TOPIC_NAME=${PUBSUB_TOPIC_NAME:-gmail-push-topic}
+      - PUBSUB_SUB_NAME=${PUBSUB_SUB_NAME:-gmail-push-sub}
+    volumes:
+      - ./integrati_backend:/app  # Mount source code for live debugging
+      - ./integrati_backend/data:/app/data
+      - ./.env:/app/.env:ro
+      - ./integrati_backend/integrati-app-pubsub-loginkey.json:/app/integrati-app-pubsub-loginkey.json:ro
+    depends_on:
+      redis:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/health"]
+      interval: 90s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    # Enable debugging
+    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client", "-m", "uvicorn", "mcp_plexus.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+
+  # Redis service for integrati_backend
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6380:6379"
+    volumes:
+      - redis_data:/dat
+    command: redis-server --appendonly yes
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 2s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  redis_data:

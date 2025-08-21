@@ -2,12 +2,32 @@
     "version": "0.2.0",
     "configurations": [
         {
-            "name": "Python: Run run_dev.py with venv",
-            "type": "debugpy",
+            "name": "Python: Remote Attach (Docker)",
+            "type": "python",
+            "request": "attach",
+            "connect": {
+                "host": "localhost",
+                "port": 5678
+            },
+            "pathMappings": [
+                {
+                    "localRoot": "${workspaceFolder}/integrati_backend",
+                    "remoteRoot": "/app"
+                }
+            ],
+            "justMyCode": false,
+            "django": false
+        },
+        {
+            "name": "Python: Current File",
+            "type": "python",
             "request": "launch",
-            "program": "${workspaceFolder}/integrati_backend/run_dev.py",
-            "python": "${workspaceFolder}/integrati_backend/.venv/bin/python",
-            "console": "integratedTerminal"
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}/integrati_backend",
+            "env": {
+                "PYTHONPATH": "${workspaceFolder}/integrati_backend"
+            }
         }
     ]
 }
