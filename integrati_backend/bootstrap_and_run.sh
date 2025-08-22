@@ -1,6 +1,22 @@
 #!/bin/sh
 set -euo pipefail
 
+# Parse command line arguments
+SETUP_ONLY=false
+while [[ $# -gt 0 ]]; do
+    case $1 in
+        --setup-only)
+            SETUP_ONLY=true
+            shift
+            ;;
+        *)
+            echo "Usage: $0 [--setup-only]"
+            echo "  --setup-only: Only setup tunnel and Pub/Sub, don't start server"
+            exit 1
+            ;;
+    esac
+done
+
 echo "[bootstrap] Starting bootstrap..."
 
 APP_PORT="8000"
@@ -109,5 +125,14 @@ fi
 # Export topic for app
 export GMAIL_PUBSUB_TOPIC="$TOPIC_FULL"
 
-echo "[bootstrap] Starting backend app..."
-exec uv run python run_dev.py
+if [ "$SETUP_ONLY" = true ]; then
+    echo "[bootstrap] Setup-only mode: Tunnel and Pub/Sub configured. Server not started."
+    echo "[bootstrap] Cloudflare URL: $PUBLIC_URL"
+    echo "[bootstrap] Pub/Sub Topic: $GMAIL_PUBSUB_TOPIC"
+    # Keep the script running to maintain the tunnel
+    echo "[bootstrap] Keeping tunnel alive..."
+    while true; do sleep 3600; done
+else
+    echo "[bootstrap] Starting backend app..."
+    exec uv run python run_dev.py
+fi

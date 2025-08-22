@@ -45,6 +45,7 @@ services:
       - CALENDAR_CLIENT_SECRET=${CALENDAR_CLIENT_SECRET}
       - PUBSUB_TOPIC_NAME=${PUBSUB_TOPIC_NAME:-gmail-push-topic}
       - PUBSUB_SUB_NAME=${PUBSUB_SUB_NAME:-gmail-push-sub}
+      - GCP_PROJECT_ID=${GCP_PROJECT_ID}
     volumes:
       - ./integrati_backend:/app  # Mount source code for live debugging
       - ./integrati_backend/data:/app/data
@@ -59,8 +60,8 @@ services:
       timeout: 10s
       retries: 3
       start_period: 40s
-    # Enable debugging
-    command: ["python", "-m", "debugpy", "--listen", "0.0.0.0:5678", "--wait-for-client", "-m", "uvicorn", "mcp_plexus.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    # Enable debugging with Cloudflare tunnel setup (without bootstrap script)
+    command: ["/bin/sh", "-c", "echo 'Setting up Cloudflare tunnel for debug mode...' && /app/setup_debug_tunnel.sh & sleep 15 && python -m debugpy --listen 0.0.0.0:5678 --wait-for-client -m uvicorn mcp_plexus.main:app --host 0.0.0.0 --port 8000 --reload"]
 
   # Redis service for integrati_backend
   redis:

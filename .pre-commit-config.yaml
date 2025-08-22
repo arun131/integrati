@@ -24,9 +24,9 @@ repos:
     hooks:
       - id: pytest
         name: pytest
-        entry: python3 -m pytest
+        entry: bash -c 'cd integrati_backend && uv run --python .venv/bin/python pytest'
         language: system
         pass_filenames: false
         always_run: true
-        args: [integrati_backend/tests/unit/, -v]
+        args: [tests/unit/, -v]
         working_dir: integrati_backend
