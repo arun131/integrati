@@ -369,6 +369,43 @@ class PlexusMCPEndpoint(HTTPEndpoint):
         logger.warning(f"Invalid or mismatched token for entity {entity_id}.")
         return None
 
+    async def _get_config_id_from_token(
+        self, entity_id: str, token: str
+    ) -> Optional[str]:
+        """Validate authentication token and return associated config ID."""
+        token_store = await get_sqlite_plexus_user_auth_token_store()
+        token_manager = DefaultPlexusUserTokenManager()
+
+        token_hash = token_manager.hash_token(token)
+        token_data = await token_store.get_token_data_by_hash(token_hash)
+
+        if token_data and token_data.entity_id == entity_id:
+            await token_store.update_token_last_used(token_hash)
+
+            # Determine if persistent_user_id is a config_id or user_id
+            persistent_user_id = token_data.persistent_user_id
+
+            # Config IDs are predefined: "base", "background_agent", etc.
+            # User IDs are typically Firebase UIDs (long alphanumeric strings)
+            known_config_ids = {"base", "background_agent"}
+
+            if persistent_user_id in known_config_ids:
+                # This is a config-specific token (e.g., background agent)
+                config_id = persistent_user_id
+                logger.info(
+                    f"Valid config token for entity {entity_id}, config: {config_id}"
+                )
+            else:
+                # This is a regular user token, default to "base" config
+                config_id = "base"
+                logger.info(
+                    f"Valid user token for entity {entity_id}, user: {persistent_user_id}, using config: {config_id}"
+                )
+
+            return config_id
+        logger.warning(f"Invalid or mismatched token for entity {entity_id}.")
+        return None
+
     async def _dispatch_mcp_request(
         self, scope: Scope, receive: Receive, send: Send
     ) -> None:
@@ -529,10 +566,11 @@ class PlexusMCPEndpoint(HTTPEndpoint):
                                         )
                                     )
                             elif method == "tools/call":
-                                # Validate tool authorization before allowing execution
+                                # Validate tool authorization with config-based permissions
                                 tool_name_to_call = json_body_for_method_check.get(
                                     "params", {}
                                 ).get("name")
+
                                 if tool_name_to_call:
                                     current_plexus_server_for_check = (
                                         PLEXUS_SERVER_INSTANCE
@@ -541,7 +579,7 @@ class PlexusMCPEndpoint(HTTPEndpoint):
                                         not current_plexus_server_for_check
                                         or not hasattr(
                                             current_plexus_server_for_check,
-                                            "can_tenant_call_tool",
+                                            "can_tenant_call_tool_with_config",
                                         )
                                     ):
                                         await JSONResponse(
@@ -553,21 +591,20 @@ class PlexusMCPEndpoint(HTTPEndpoint):
                                         )(scope, receive, send)
                                         return
 
-                                    if not await current_plexus_server_for_check.can_tenant_call_tool(
-                                        entity_id_from_path, tool_name_to_call
-                                    ):
-                                        resp_payload = {
-                                            "jsonrpc": "2.0",
-                                            "id": json_body_for_method_check.get("id"),
-                                            "error": {
-                                                "code": -32003,
-                                                "message": f"Tool '{tool_name_to_call}' not authorized.",
-                                            },
-                                        }
-                                        await JSONResponse(
-                                            resp_payload, status_code=403
-                                        )(scope, receive, send)
-                                        return
+                                    # Get config_id from token instead of header
+                                    config_id = (
+                                        await self._get_config_id_from_token(
+                                            entity_id_from_path,
+                                            plexus_user_auth_token_from_header
+                                            or token_from_url_path,
+                                        )
+                                        or "base"
+                                    )
+
+                                    # REMOVED: Permission checking is now handled in individual tool functions
+                                    # All tool calls will reach the tool functions and be handled there
+
+                                    # REMOVED: Restricted access handling is now done in individual tool functions
                     except Exception:
                         pass
 
@@ -727,7 +764,7 @@ class PlexusMCPEndpoint(HTTPEndpoint):
                 )
 
                 if not current_plexus_server or not hasattr(
-                    current_plexus_server, "get_mcp_tools_list_for_tenant"
+                    current_plexus_server, "get_mcp_tools_list_for_config"
                 ):
                     await JSONResponse(
                         {
@@ -742,9 +779,21 @@ class PlexusMCPEndpoint(HTTPEndpoint):
                     )(scope, receive, send)
                     return
 
+                # Get config_id from token instead of header
+                current_token = (
+                    plexus_user_auth_token_from_header or token_from_url_path
+                )
+                config_id = (
+                    await self._get_config_id_from_token(
+                        entity_id_from_path, current_token
+                    )
+                    or "base"
+                )
+
                 scoped_tools = (
-                    await current_plexus_server.get_mcp_tools_list_for_tenant(
+                    await current_plexus_server.get_mcp_tools_list_for_config(
                         entity_id=entity_id_from_path,
+                        config_id=config_id,
                         tool_set_filter=tools_list_filter_param,
                         mcp_session_id=authoritative_mcp_session_id,
                     )
@@ -798,22 +847,6 @@ class PlexusMCPEndpoint(HTTPEndpoint):
                     scope_for_mcp["state"]["derived_persistent_user_id"] = (
                         derived_persistent_user_id
                     )
-
-                    # Register tools for this tenant based on their integrations
-                    try:
-                        from .dynamic_tool_registry import get_dynamic_tool_registry
-
-                        tool_registry = await get_dynamic_tool_registry()
-                        available_tools = await tool_registry.register_tools_for_tenant(
-                            entity_id_from_path, derived_persistent_user_id
-                        )
-                        logger.info(
-                            f"Registered {len(available_tools)} tools for tenant {entity_id_from_path}"
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Error registering tools for tenant {entity_id_from_path}: {e}"
-                        )
 
                 # Use FastMCP's request context manager for proper request handling
                 with set_http_request_cm(
@@ -1101,18 +1134,22 @@ try:
         auth_router as frontend_auth_router,
         integrations_router as frontend_integrations_router,
         analytics_router as frontend_analytics_router,
+        notifications_router as frontend_notifications_router,
     )
     from frontend_integration import gmail_oauth_router, calendar_oauth_router
+    from frontend_integration.approvals import router as approvals_router
 
     app.include_router(frontend_auth_router, tags=["Frontend Auth"])
     app.include_router(frontend_integrations_router, tags=["Frontend Integrations"])
     app.include_router(frontend_analytics_router, tags=["Frontend Analytics"])
+    app.include_router(frontend_notifications_router, tags=["Frontend Notifications"])
     app.include_router(
         gmail_oauth_router, prefix="/api/integrations", tags=["Gmail OAuth"]
     )
     app.include_router(
         calendar_oauth_router, prefix="/api/integrations", tags=["Calendar OAuth"]
     )
+    app.include_router(approvals_router, tags=["Tool Approvals"])
     logger.info("Frontend integration routers mounted.")
 except ImportError as e:
     logger.error(f"Failed to import frontend integration routers: {e}")

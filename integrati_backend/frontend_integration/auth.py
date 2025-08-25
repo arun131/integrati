@@ -80,31 +80,125 @@ async def create_plexus_token_from_firebase(request: Request):
             )
             tenant = await tenant_service.create_tenant(tenant_data)
 
-        # Create Plexus user token
+        # Create robust token management with base and background configs
         token_manager = DefaultPlexusUserTokenManager()
         token_store = await get_sqlite_plexus_user_auth_token_store()
 
-        # Generate token and hash
-        token, token_hash = token_manager.generate_token_and_hash()
-
-        # Save token data
         from mcp_plexus.plexus_auth.models import PlexusUserAuthTokenData
         from datetime import datetime, timezone
 
-        token_data = PlexusUserAuthTokenData(
-            entity_id=tenant.entity_id,
-            persistent_user_id=firebase_uid,
-            token_hash=token_hash,
-            created_at=datetime.now(timezone.utc).isoformat(),
-            last_used_at=datetime.now(timezone.utc).isoformat(),
+        # Strategy: Always generate fresh tokens for security, but use proper config management
+        # Check if base config token already exists
+        existing_base_token = await token_store.get_token_data_by_user_id(
+            tenant.entity_id, "base"
         )
-        await token_store.save_token_data(token_data)
+
+        if existing_base_token:
+            # Generate new token but keep the same config association
+            base_token, base_token_hash = token_manager.generate_token_and_hash()
+            existing_base_token.token_hash = base_token_hash
+            existing_base_token.last_used_at = datetime.now(timezone.utc).isoformat()
+            await token_store.save_token_data(existing_base_token)  # This will upsert
+            logger.info(
+                f"Refreshed base config token for returning user {tenant.entity_id}"
+            )
+        else:
+            # Create new base config token for new user
+            base_token, base_token_hash = token_manager.generate_token_and_hash()
+            base_token_data = PlexusUserAuthTokenData(
+                entity_id=tenant.entity_id,
+                persistent_user_id="base",  # Config ID stored as persistent_user_id
+                token_hash=base_token_hash,
+                created_at=datetime.now(timezone.utc).isoformat(),
+                last_used_at=datetime.now(timezone.utc).isoformat(),
+            )
+            await token_store.save_token_data(base_token_data)
+            logger.info(f"Created new base config token for {tenant.entity_id}")
+
+        # Check if background agent config token already exists
+        existing_bg_token = await token_store.get_token_data_by_user_id(
+            tenant.entity_id, "background_agent"
+        )
+
+        if not existing_bg_token:
+            # Create background agent config token for new user
+            bg_token, bg_token_hash = token_manager.generate_token_and_hash()
+            bg_token_data = PlexusUserAuthTokenData(
+                entity_id=tenant.entity_id,
+                persistent_user_id="background_agent",  # Config ID stored as persistent_user_id
+                token_hash=bg_token_hash,
+                created_at=datetime.now(timezone.utc).isoformat(),
+                last_used_at=datetime.now(timezone.utc).isoformat(),
+            )
+            await token_store.save_token_data(bg_token_data)
+            logger.info(
+                f"Created new background_agent config token for {tenant.entity_id}"
+            )
+
+        # Create tenant configs in database
+        from mcp_plexus.tenants.sqlite_tenant_config_store import (
+            get_sqlite_tenant_config_store,
+        )
+        from mcp_plexus.tenants.models import TenantConfigCreate
+
+        config_store = await get_sqlite_tenant_config_store()
+
+        # Create base config if doesn't exist
+        base_config = await config_store.get_config_by_id(tenant.entity_id, "base")
+        if not base_config:
+            base_config_data = TenantConfigCreate(
+                entity_id=tenant.entity_id,
+                config_id="base",
+                config_name="Base Config",
+                config_type="profile",
+                is_default=True,
+                settings_json={
+                    "tool_permissions": {}
+                },  # Empty = full access to all tools
+            )
+            await config_store.create_config(base_config_data)
+            logger.info(f"Created base config for {tenant.entity_id}")
+
+        # Create background agent config if doesn't exist
+        bg_config = await config_store.get_config_by_id(
+            tenant.entity_id, "background_agent"
+        )
+        if not bg_config:
+            # Import default permissions from integration tools
+            default_permissions = {}
+            try:
+                from integrations.common.constants import (
+                    COMMON_DEFAULT_BACKGROUND_PERMISSIONS,
+                )
+                from integrations.gmail.constants import (
+                    GMAIL_DEFAULT_BACKGROUND_PERMISSIONS,
+                )
+                from integrations.calendar.constants import (
+                    CALENDAR_DEFAULT_BACKGROUND_PERMISSIONS,
+                )
+
+                default_permissions.update(COMMON_DEFAULT_BACKGROUND_PERMISSIONS)
+                default_permissions.update(GMAIL_DEFAULT_BACKGROUND_PERMISSIONS)
+                default_permissions.update(CALENDAR_DEFAULT_BACKGROUND_PERMISSIONS)
+            except ImportError:
+                logger.warning("Could not import default background permissions")
+
+            bg_config_data = TenantConfigCreate(
+                entity_id=tenant.entity_id,
+                config_id="background_agent",
+                config_name="Background Agent Config",
+                config_type="profile",
+                is_default=False,
+                settings_json={"tool_permissions": default_permissions},
+            )
+            await config_store.create_config(bg_config_data)
+            logger.info(f"Created background_agent config for {tenant.entity_id}")
 
         # Log analytics (optional - don't fail the request if this fails)
         try:
             await log_auth_event(
                 entity_id=tenant.entity_id,
-                user_id=firebase_uid,
+                user_id="base",  # Use config_id as user_id for analytics
                 event_type="firebase_login",
                 metadata={"email": email, "firebase_uid": firebase_uid},
                 success=True,
@@ -114,11 +208,12 @@ async def create_plexus_token_from_firebase(request: Request):
             # Don't let analytics failure break the auth flow
 
         response_data = {
-            "plexus_token": token,
+            "plexus_token": base_token,  # Return the base config token
             "entity_id": tenant.entity_id,
-            "user_id": firebase_uid,
+            "user_id": "base",  # Return config_id as user_id
             "email": email,
             "tenant_name": tenant.tenant_name,
+            "config_id": "base",  # Explicitly include config info
         }
         logger.info(f"Returning successful response: {response_data}")
         return response_data
@@ -158,10 +253,27 @@ async def get_current_user_info(
 ):
     """Get current user information."""
     try:
+        entity_id = current_user["entity_id"]
+        user_id = current_user["persistent_user_id"]
+
+        # Get unread notification count
+        unread_notifications = 0
+        try:
+            from analytics.database import AnalyticsDatabase
+
+            db = AnalyticsDatabase()
+            unread_notifications = await db.get_unread_notification_count(
+                entity_id, user_id
+            )
+        except Exception as notification_error:
+            logger.warning(f"Failed to get notification count: {notification_error}")
+            # Don't fail the request if notifications can't be retrieved
+
         return {
-            "entity_id": current_user["entity_id"],
-            "user_id": current_user["persistent_user_id"],
+            "entity_id": entity_id,
+            "user_id": user_id,
             "authenticated": True,
+            "unread_notifications": unread_notifications,
         }
     except Exception as e:
         logger.error(f"Error getting current user info: {e}")

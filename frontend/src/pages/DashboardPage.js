@@ -1,11 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useApprovals } from '../context/ApprovalContext';
+import { useNotifications } from '../context/NotificationContext';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { tenantApi } from '../services/api';
 import ChatbotWidget from '../components/ChatbotWidget';
+import NotificationPanel from '../components/NotificationPanel';
 
 function DashboardPage() {
     const { user, logout, tenantId, plexusToken, tenantRegistrationError } = useAuth();
+    const { pendingCount } = useApprovals();
+    const { unreadCount } = useNotifications();
     const navigate = useNavigate();
     const location = useLocation();
     const [integrations, setIntegrations] = useState({
@@ -261,24 +266,70 @@ function DashboardPage() {
                     <h1 style={{ color: '#333', margin: '0 0 5px 0' }}>
                         Welcome, {user?.displayName || user?.email}!
                     </h1>
-                    <p style={{ color: '#666', margin: '0' }}>
-                        Tenant: {tenantId} • Manage your integrations and services
+                    <p style={{ color: '#666', margin: '0', display: 'flex', alignItems: 'center', gap: '10px' }}>
+                        <span>Tenant: {tenantId} • Manage your integrations and services</span>
+                        {unreadCount > 0 && (
+                            <span style={{
+                                backgroundColor: '#007bff',
+                                color: 'white',
+                                borderRadius: '12px',
+                                padding: '2px 8px',
+                                fontSize: '12px',
+                                fontWeight: 'bold'
+                            }}>
+                                {unreadCount} new notification{unreadCount > 1 ? 's' : ''}
+                            </span>
+                        )}
                     </p>
                 </div>
-                <button
-                    onClick={handleLogout}
-                    style={{
-                        padding: '10px 20px',
-                        backgroundColor: '#dc3545',
-                        color: 'white',
-                        border: 'none',
-                        borderRadius: '5px',
-                        cursor: 'pointer',
-                        fontSize: '14px'
-                    }}
-                >
-                    Logout
-                </button>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                    <button
+                        onClick={() => navigate('/approvals')}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#007bff',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '14px',
+                            position: 'relative',
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px'
+                        }}
+                    >
+                        🔐 Approvals
+                        {pendingCount > 0 && (
+                            <span style={{
+                                backgroundColor: '#dc3545',
+                                color: 'white',
+                                borderRadius: '50%',
+                                padding: '2px 6px',
+                                fontSize: '12px',
+                                fontWeight: 'bold',
+                                minWidth: '18px',
+                                textAlign: 'center'
+                            }}>
+                                {pendingCount}
+                            </span>
+                        )}
+                    </button>
+                    <button
+                        onClick={handleLogout}
+                        style={{
+                            padding: '10px 20px',
+                            backgroundColor: '#dc3545',
+                            color: 'white',
+                            border: 'none',
+                            borderRadius: '5px',
+                            cursor: 'pointer',
+                            fontSize: '14px'
+                        }}
+                    >
+                        Logout
+                    </button>
+                </div>
             </div>
 
             {/* Show tenant registration error if present */}
@@ -299,6 +350,9 @@ function DashboardPage() {
                     {successMessage}
                 </div>
             )}
+
+            {/* Notifications Section */}
+            <NotificationPanel />
 
             {/* Common Tools Section */}
             <div style={{ marginBottom: '40px' }}>

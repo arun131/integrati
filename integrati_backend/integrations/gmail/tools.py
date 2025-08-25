@@ -9,19 +9,11 @@ from mcp_plexus.plexus_context import PlexusContext
 from mcp_plexus.oauth.errors import PlexusExternalAuthRequiredError
 
 from .api import GmailAPI
+from ..utils import PermissionHelper
 
 logger = logging.getLogger(__name__)
 
-# Tool names for smart categorization
-GMAIL_TOOL_NAMES = [
-    "search_gmail_messages",
-    "get_last_received_email",
-    "send_gmail_message",
-    "get_gmail_message",
-    "get_unread_email_count",
-    "search_gmail_by_sender",
-    "search_gmail_by_subject",
-]
+# Import constants from separate file to avoid circular imports
 
 
 class GmailTools:
@@ -42,6 +34,32 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="search_gmail_messages",
+                tool_params={"query": query, "max_results": max_results},
+                no_access_response={
+                    "messages": [],
+                    "count": 0,
+                    "query": query,
+                    "max_results": max_results,
+                    "status_message": "You don't have permission to search emails with this configuration.",
+                },
+                restricted_access_response={
+                    "messages": [],
+                    "count": 0,
+                    "query": query,
+                    "max_results": max_results,
+                },
+                approval_message=f"Your request to search emails with query '{query}' was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="gmail",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             gmail_api = GmailAPI(entity_id, user_id)
             messages = await gmail_api.search_messages(query, max_results)
 
@@ -50,6 +68,7 @@ class GmailTools:
                 "count": len(messages),
                 "query": query,
                 "max_results": max_results,
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -71,16 +90,39 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="get_last_received_email",
+                tool_params={},
+                no_access_response={
+                    "email": None,
+                    "found": False,
+                    "status_message": "You don't have permission to read emails with this configuration.",
+                },
+                restricted_access_response={
+                    "email": None,
+                    "found": False,
+                },
+                approval_message="Your request to get the last received email was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="gmail",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             gmail_api = GmailAPI(entity_id, user_id)
             email = await gmail_api.get_last_received_email()
 
             if email:
-                return {"email": email, "found": True}
+                return {"email": email, "found": True, "status_message": "success"}
             else:
                 return {
                     "email": None,
                     "found": False,
                     "message": "No emails found in inbox",
+                    "status_message": "success",
                 }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -108,6 +150,78 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions based on config_id (user_id)
+            if user_id == "base":
+                # Base config has full access - proceed with execution
+                pass
+            else:
+                # Check permissions for non-base configs
+                from mcp_plexus.permissions.service import PermissionService
+                from mcp_plexus.permissions.models import ToolPermissionLevel
+
+                permission_service = PermissionService()
+                permission_response = await permission_service.check_tool_permission(
+                    entity_id, user_id, "send_gmail_message"
+                )
+
+                if not permission_response.allowed:
+                    # No access - return dummy response in same format
+                    logger.info(
+                        f"User {user_id} does not have permission to send emails"
+                    )
+                    return {
+                        "status": "access_denied",
+                        "message_id": None,
+                        "thread_id": None,
+                        "to_email": to_email,
+                        "subject": subject,
+                        "status_message": "You don't have permission to send emails with this configuration.",
+                    }
+
+                elif (
+                    permission_response.permission_level
+                    == ToolPermissionLevel.RESTRICTED_ACCESS
+                ):
+                    # Restricted access - create approval request and return dummy response
+                    try:
+                        approval_id = await permission_service.create_approval_request(
+                            entity_id,
+                            user_id,
+                            "send_gmail_message",
+                            {
+                                "to_email": to_email,
+                                "subject": subject,
+                                "message_text": message_text,
+                                "thread_id": thread_id,
+                            },
+                        )
+                        logger.info(
+                            f"Approval request created for send_gmail_message with ID: {approval_id}"
+                        )
+
+                        # Note: Approval request is automatically available to frontend via polling
+                        # No separate notification needed since approval creation is sufficient
+
+                        return {
+                            "status": "approval_required",
+                            "message_id": None,
+                            "thread_id": None,
+                            "to_email": to_email,
+                            "subject": subject,
+                            "status_message": f"Your request to send email '{subject}' was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                        }
+                    except Exception as e:
+                        logger.error(f"Failed to create approval request: {e}")
+                        return {
+                            "status": "approval_failed",
+                            "message_id": None,
+                            "thread_id": None,
+                            "to_email": to_email,
+                            "subject": subject,
+                            "status_message": "Failed to create approval request for email sending.",
+                        }
+
+            # If we reach here, we have permission to execute
             gmail_api = GmailAPI(entity_id, user_id)
             result = await gmail_api.send_message(
                 to_email, subject, message_text, thread_id
@@ -119,6 +233,7 @@ class GmailTools:
                 "thread_id": result.get("thread_id"),
                 "to_email": to_email,
                 "subject": subject,
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -142,10 +257,34 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions based on config_id (user_id)
+            if user_id == "base":
+                # Base config has full access - proceed with execution
+                pass
+            else:
+                # Check permissions for non-base configs
+                from mcp_plexus.permissions.service import PermissionService
+
+                permission_service = PermissionService()
+                permission_response = await permission_service.check_tool_permission(
+                    entity_id, user_id, "get_gmail_message"
+                )
+
+                if not permission_response.allowed:
+                    # No access - return dummy response in same format
+                    logger.info(
+                        f"User {user_id} does not have permission to read emails"
+                    )
+                    return {
+                        "message": None,
+                        "found": False,
+                        "status_message": "You don't have permission to read emails with this configuration.",
+                    }
+
             gmail_api = GmailAPI(entity_id, user_id)
             message = await gmail_api.get_message(message_id)
 
-            return {"message": message, "found": True}
+            return {"message": message, "found": True, "status_message": "success"}
         except PlexusExternalAuthRequiredError:
             raise ToolError(
                 "Gmail integration not authenticated. Please add Gmail integration first."
@@ -166,10 +305,38 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions based on config_id (user_id)
+            if user_id == "base":
+                # Base config has full access - proceed with execution
+                pass
+            else:
+                # Check permissions for non-base configs
+                from mcp_plexus.permissions.service import PermissionService
+
+                permission_service = PermissionService()
+                permission_response = await permission_service.check_tool_permission(
+                    entity_id, user_id, "get_unread_email_count"
+                )
+
+                if not permission_response.allowed:
+                    # No access - return dummy response in same format
+                    logger.info(
+                        f"User {user_id} does not have permission to read email counts"
+                    )
+                    return {
+                        "unread_count": 0,
+                        "status": "access_denied",
+                        "status_message": "You don't have permission to read email counts with this configuration.",
+                    }
+
             gmail_api = GmailAPI(entity_id, user_id)
             count = await gmail_api.get_unread_count()
 
-            return {"unread_count": count, "status": "success"}
+            return {
+                "unread_count": count,
+                "status": "success",
+                "status_message": "success",
+            }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
                 "Gmail integration not authenticated. Please add Gmail integration first."
@@ -192,6 +359,32 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions based on config_id (user_id)
+            if user_id == "base":
+                # Base config has full access - proceed with execution
+                pass
+            else:
+                # Check permissions for non-base configs
+                from mcp_plexus.permissions.service import PermissionService
+
+                permission_service = PermissionService()
+                permission_response = await permission_service.check_tool_permission(
+                    entity_id, user_id, "search_gmail_by_sender"
+                )
+
+                if not permission_response.allowed:
+                    # No access - return dummy response in same format
+                    logger.info(
+                        f"User {user_id} does not have permission to search emails by sender {sender_email}"
+                    )
+                    return {
+                        "messages": [],
+                        "count": 0,
+                        "sender_email": sender_email,
+                        "max_results": max_results,
+                        "status_message": f"Request to search emails from {sender_email} was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                    }
+
             query = f"from:{sender_email}"
             gmail_api = GmailAPI(entity_id, user_id)
             messages = await gmail_api.search_messages(query, max_results)
@@ -201,6 +394,7 @@ class GmailTools:
                 "count": len(messages),
                 "sender_email": sender_email,
                 "max_results": max_results,
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -224,6 +418,32 @@ class GmailTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions based on config_id (user_id)
+            if user_id == "base":
+                # Base config has full access - proceed with execution
+                pass
+            else:
+                # Check permissions for non-base configs
+                from mcp_plexus.permissions.service import PermissionService
+
+                permission_service = PermissionService()
+                permission_response = await permission_service.check_tool_permission(
+                    entity_id, user_id, "search_gmail_by_subject"
+                )
+
+                if not permission_response.allowed:
+                    # No access - return dummy response in same format
+                    logger.info(
+                        f"User {user_id} does not have permission to search emails by subject {subject_keywords}"
+                    )
+                    return {
+                        "messages": [],
+                        "count": 0,
+                        "subject_keywords": subject_keywords,
+                        "max_results": max_results,
+                        "status_message": f"Request to search emails by subject {subject_keywords} was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                    }
+
             query = f"subject:{subject_keywords}"
             gmail_api = GmailAPI(entity_id, user_id)
             messages = await gmail_api.search_messages(query, max_results)
@@ -233,6 +453,7 @@ class GmailTools:
                 "count": len(messages),
                 "subject_keywords": subject_keywords,
                 "max_results": max_results,
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(

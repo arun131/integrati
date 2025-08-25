@@ -6,6 +6,7 @@ import sqlite3
 from datetime import datetime, timedelta
 from pathlib import Path
 from contextlib import asynccontextmanager
+from typing import List
 import os
 
 from .models import (
@@ -14,6 +15,7 @@ from .models import (
     IntegrationEventLog,
     AnalyticsSummary,
     UserAnalytics,
+    UserNotification,
 )
 
 logger = logging.getLogger(__name__)
@@ -69,6 +71,7 @@ class AnalyticsDatabase:
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     entity_id TEXT NOT NULL,
                     user_id TEXT NOT NULL,
+                    config_id TEXT NOT NULL,
                     client_name TEXT NOT NULL,
                     tool_name TEXT NOT NULL,
                     parameters TEXT NOT NULL,
@@ -113,6 +116,26 @@ class AnalyticsDatabase:
                 )
             """)
 
+            # User Notifications table
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS user_notifications (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    entity_id TEXT NOT NULL,
+                    user_id TEXT NOT NULL,
+                    notification_id TEXT NOT NULL UNIQUE,
+                    notification_text TEXT NOT NULL,
+                    integration_type TEXT NOT NULL,
+                    agent_used TEXT NOT NULL,
+                    priority TEXT DEFAULT 'normal',
+                    timestamp TEXT NOT NULL,
+                    is_read BOOLEAN DEFAULT 0,
+                    event_details TEXT,
+                    tools_used TEXT,
+                    reasoning TEXT,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+
             # Create indexes for better query performance
             cursor.execute(
                 "CREATE INDEX IF NOT EXISTS idx_mcp_entity_user ON mcp_request_logs(entity_id, user_id)"
@@ -141,6 +164,19 @@ class AnalyticsDatabase:
                 "CREATE INDEX IF NOT EXISTS idx_integration_timestamp ON integration_event_logs(timestamp)"
             )
 
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_entity_user ON user_notifications(entity_id, user_id)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_timestamp ON user_notifications(timestamp)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_is_read ON user_notifications(is_read)"
+            )
+            cursor.execute(
+                "CREATE INDEX IF NOT EXISTS idx_notifications_notification_id ON user_notifications(notification_id)"
+            )
+
             conn.commit()
 
     @asynccontextmanager
@@ -161,13 +197,14 @@ class AnalyticsDatabase:
                 cursor.execute(
                     """
                     INSERT INTO mcp_request_logs
-                    (entity_id, user_id, client_name, tool_name, parameters, response,
+                    (entity_id, user_id, config_id, client_name, tool_name, parameters, response,
                      execution_time, timestamp, success, error_message, session_id)
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """,
                     (
                         log.entity_id,
                         log.user_id,
+                        log.config_id,
                         log.client_name,
                         log.tool_name,
                         json.dumps(log.parameters),
@@ -423,3 +460,146 @@ class AnalyticsDatabase:
                 last_activity=None,
                 integrations_used=[],
             )
+
+    async def insert_user_notification(self, notification: UserNotification) -> bool:
+        """Insert user notification into database."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    INSERT INTO user_notifications
+                    (entity_id, user_id, notification_id, notification_text, integration_type,
+                     agent_used, priority, timestamp, is_read, event_details, tools_used, reasoning)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """,
+                    (
+                        notification.entity_id,
+                        notification.user_id,
+                        notification.notification_id,
+                        notification.notification_text,
+                        notification.integration_type,
+                        notification.agent_used,
+                        notification.priority,
+                        notification.timestamp.isoformat(),
+                        notification.is_read,
+                        json.dumps(notification.event_details)
+                        if notification.event_details
+                        else None,
+                        json.dumps(notification.tools_used)
+                        if notification.tools_used
+                        else None,
+                        notification.reasoning,
+                    ),
+                )
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error inserting user notification: {e}")
+            return False
+
+    async def get_user_notifications(
+        self, entity_id: str, user_id: str, limit: int = 20, include_read: bool = False
+    ) -> List[UserNotification]:
+        """Get notifications for a user."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+
+                # Build query based on whether to include read notifications
+                query = """
+                    SELECT * FROM user_notifications
+                    WHERE entity_id = ? AND user_id = ?
+                """
+                params = [entity_id, user_id]
+
+                if not include_read:
+                    query += " AND is_read = 0"
+
+                query += " ORDER BY timestamp DESC LIMIT ?"
+                params.append(limit)
+
+                cursor.execute(query, params)
+                rows = cursor.fetchall()
+
+                notifications = []
+                for row in rows:
+                    notification = UserNotification(
+                        entity_id=row["entity_id"],
+                        user_id=row["user_id"],
+                        notification_id=row["notification_id"],
+                        notification_text=row["notification_text"],
+                        integration_type=row["integration_type"],
+                        agent_used=row["agent_used"],
+                        priority=row["priority"],
+                        timestamp=datetime.fromisoformat(row["timestamp"]),
+                        is_read=bool(row["is_read"]),
+                        event_details=json.loads(row["event_details"])
+                        if row["event_details"]
+                        else None,
+                        tools_used=json.loads(row["tools_used"])
+                        if row["tools_used"]
+                        else None,
+                        reasoning=row["reasoning"],
+                    )
+                    notifications.append(notification)
+
+                return notifications
+        except Exception as e:
+            logger.error(f"Error getting user notifications: {e}")
+            return []
+
+    async def mark_notification_as_read(self, notification_id: str) -> bool:
+        """Mark a notification as read."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    "UPDATE user_notifications SET is_read = 1 WHERE notification_id = ?",
+                    (notification_id,),
+                )
+                conn.commit()
+                return cursor.rowcount > 0
+        except Exception as e:
+            logger.error(f"Error marking notification as read: {e}")
+            return False
+
+    async def mark_all_notifications_as_read(
+        self, entity_id: str, user_id: str
+    ) -> bool:
+        """Mark all notifications as read for a user."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    UPDATE user_notifications
+                    SET is_read = 1
+                    WHERE entity_id = ? AND user_id = ? AND is_read = 0
+                    """,
+                    (entity_id, user_id),
+                )
+                conn.commit()
+                return True
+        except Exception as e:
+            logger.error(f"Error marking all notifications as read: {e}")
+            return False
+
+    async def get_unread_notification_count(self, entity_id: str, user_id: str) -> int:
+        """Get count of unread notifications for a user."""
+        try:
+            async with self.get_connection() as conn:
+                cursor = conn.cursor()
+                cursor.execute(
+                    """
+                    SELECT COUNT(*) as count
+                    FROM user_notifications
+                    WHERE entity_id = ? AND user_id = ? AND is_read = 0
+                    """,
+                    (entity_id, user_id),
+                )
+                result = cursor.fetchone()
+                return result["count"] if result else 0
+        except Exception as e:
+            logger.error(f"Error getting unread notification count: {e}")
+            return 0

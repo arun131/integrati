@@ -10,6 +10,7 @@ class MCPRequestLog(BaseModel):
 
     entity_id: str = Field(description="Tenant entity ID")
     user_id: str = Field(description="User ID within the tenant")
+    config_id: str = Field(description="Config ID used (base, background_agent, etc.)")
     client_name: str = Field(description="Client name (claude, cursor, openai, etc.)")
     tool_name: str = Field(description="Name of the MCP tool called")
     parameters: Dict[str, Any] = Field(description="Tool parameters")
@@ -114,6 +115,42 @@ class UserAnalytics(BaseModel):
     favorite_tools: List[str] = Field(description="Most used tools by this user")
     last_activity: Optional[datetime] = Field(description="Last activity timestamp")
     integrations_used: List[str] = Field(description="Integrations used by this user")
+
+    class Config:
+        json_encoders = {datetime: lambda v: v.isoformat()}
+
+
+class UserNotification(BaseModel):
+    """Model for user notifications from background agents."""
+
+    entity_id: str = Field(description="Tenant entity ID")
+    user_id: str = Field(description="User ID within the tenant")
+    notification_id: str = Field(description="Unique notification ID")
+    notification_text: str = Field(description="Personalized notification message")
+    integration_type: str = Field(
+        description="Source integration (gmail, calendar, etc.)"
+    )
+    agent_used: str = Field(
+        description="Background agent that generated the notification"
+    )
+    priority: str = Field(
+        default="normal", description="Notification priority (low, normal, high)"
+    )
+    timestamp: datetime = Field(
+        default_factory=datetime.utcnow, description="Notification timestamp"
+    )
+    is_read: bool = Field(
+        default=False, description="Whether the user has read this notification"
+    )
+    event_details: Optional[Dict[str, Any]] = Field(
+        default=None, description="Original event details that triggered notification"
+    )
+    tools_used: Optional[List[str]] = Field(
+        default=None, description="Tools used by the agent"
+    )
+    reasoning: Optional[str] = Field(
+        default=None, description="Agent reasoning for the notification"
+    )
 
     class Config:
         json_encoders = {datetime: lambda v: v.isoformat()}
