@@ -1,1 +1,1 @@
-"""Unit tests for integrati_backend."""
+"""Unit tests package."""

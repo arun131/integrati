@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNotifications } from '../context/NotificationContext';
+import { useNotifications } from '../context/NotificationContext_WebSocket';
 
 const NotificationPanel = () => {
     const {

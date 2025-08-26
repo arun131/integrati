@@ -9,8 +9,9 @@ import SendEmailPage from './pages/SendEmailPage';
 import CreateEventPage from './pages/CreateEventPage';
 import ApprovalsPage from './pages/ApprovalsPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
-import { ApprovalProvider } from './context/ApprovalContext';
-import { NotificationProvider } from './context/NotificationContext';
+import { WebSocketProvider } from './context/WebSocketContext';
+import { ApprovalProvider } from './context/ApprovalContext_WebSocket';
+import { NotificationProvider } from './context/NotificationContext_WebSocket';
 import ApprovalNotification from './components/ApprovalNotification';
 
 const PrivateRoute = ({ children }) => {
@@ -32,10 +33,11 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                <NotificationProvider>
-                    <ApprovalProvider>
-                        <ApprovalNotification />
-                        <Routes>
+                <WebSocketProvider>
+                    <NotificationProvider>
+                        <ApprovalProvider>
+                            <ApprovalNotification />
+                            <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                         path="/dashboard"
@@ -95,9 +97,10 @@ function App() {
                     />
                     <Route path="/" element={<Navigate to="/dashboard" />} />
                     <Route path="*" element={<Navigate to="/login" replace />} />
-                        </Routes>
-                    </ApprovalProvider>
-                </NotificationProvider>
+                            </Routes>
+                        </ApprovalProvider>
+                    </NotificationProvider>
+                </WebSocketProvider>
             </AuthProvider>
         </Router>
     );

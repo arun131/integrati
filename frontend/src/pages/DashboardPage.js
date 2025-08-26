@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { useApprovals } from '../context/ApprovalContext';
-import { useNotifications } from '../context/NotificationContext';
+import { useApprovals } from '../context/ApprovalContext_WebSocket';
+import { useNotifications } from '../context/NotificationContext_WebSocket';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { tenantApi } from '../services/api';
 import ChatbotWidget from '../components/ChatbotWidget';

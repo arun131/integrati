@@ -957,6 +957,27 @@ async def fastapi_startup():
         except Exception as e:
             logger.error(f"Error logging route: {e}")
 
+    # Start WebSocket cleanup task
+    try:
+        import asyncio
+        from events.websocket_manager import websocket_manager
+
+        async def cleanup_websocket_connections():
+            """Background task to clean up stale WebSocket connections."""
+            while True:
+                try:
+                    await websocket_manager.cleanup_stale_connections()
+                    await asyncio.sleep(60)  # Clean up every 60 seconds
+                except Exception as e:
+                    logger.error(f"Error in WebSocket cleanup task: {e}")
+                    await asyncio.sleep(30)  # Retry after 30 seconds on error
+
+        # Start the cleanup task
+        asyncio.create_task(cleanup_websocket_connections())
+        logger.info("WebSocket cleanup task started.")
+    except Exception as e:
+        logger.error(f"Failed to start WebSocket cleanup task: {e}")
+
     # Ensure push watchers for connected integrations (tenant-level for now)
     try:
         db = await get_sqlite_db_connection()
@@ -1162,6 +1183,16 @@ try:
     logger.info("Chatbot API router mounted.")
 except ImportError as e:
     logger.error(f"Failed to import chatbot API router: {e}")
+
+# WebSocket Events router
+try:
+    from events.websocket_endpoints import router as websocket_events_router
+
+    app.include_router(websocket_events_router)
+    logger.info("WebSocket Events router mounted.")
+except ImportError as e:
+    logger.error(f"Failed to import WebSocket Events router: {e}")
+
 app.mount(path="/mcp", app=mcp_starlette_router)
 
 logger.info(

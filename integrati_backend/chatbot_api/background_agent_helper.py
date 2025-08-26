@@ -30,17 +30,18 @@ async def save_user_notification(
     reasoning: str = None,
     priority: str = "normal",
 ) -> bool:
-    """Save a user notification to the database."""
+    """Save a user notification to the database and broadcast via WebSocket."""
     try:
         from analytics.database import AnalyticsDatabase
         from analytics.models import UserNotification
 
         db = AnalyticsDatabase()
 
+        notification_id = str(uuid.uuid4())
         notification = UserNotification(
             entity_id=tenant_id,
             user_id=user_id,
-            notification_id=str(uuid.uuid4()),
+            notification_id=notification_id,
             notification_text=notification_text,
             integration_type=integration_type,
             agent_used=agent_used,
@@ -55,6 +56,37 @@ async def save_user_notification(
         success = await db.insert_user_notification(notification)
         if success:
             logger.info(f"Saved notification for user {user_id} in tenant {tenant_id}")
+
+            # Broadcast via WebSocket
+            try:
+                from events.websocket_manager import websocket_manager
+
+                notification_data = {
+                    "notification_id": notification_id,
+                    "notification_text": notification_text,
+                    "integration_type": integration_type,
+                    "agent_used": agent_used,
+                    "priority": priority,
+                    "timestamp": notification.timestamp.isoformat(),
+                    "is_read": False,
+                    "event_details": event_details,
+                    "tools_used": tools_used,
+                    "reasoning": reasoning,
+                }
+
+                await websocket_manager.send_notification(
+                    tenant_id=tenant_id,
+                    user_id=user_id,
+                    notification_data=notification_data,
+                )
+                logger.debug(
+                    f"Broadcasted notification via WebSocket to user {user_id}"
+                )
+            except Exception as ws_error:
+                logger.error(
+                    f"Failed to broadcast notification via WebSocket: {ws_error}"
+                )
+                # Don't fail the whole operation if WebSocket broadcast fails
         else:
             logger.error(
                 f"Failed to save notification for user {user_id} in tenant {tenant_id}"

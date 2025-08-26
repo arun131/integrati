@@ -145,6 +145,62 @@ class PermissionService:
             db.commit()
 
             logger.info(f"Created approval request {approval_id} for tool {tool_name}")
+
+            # Broadcast approval request via WebSocket
+            try:
+                from events.websocket_manager import websocket_manager, WebSocketMessage
+
+                # Get tool description for better UX
+                tool_description = f"Permission required for {tool_name}"
+
+                approval_data = {
+                    "approval_id": approval_id,
+                    "tool_name": tool_name,
+                    "tool_description": tool_description,
+                    "parameters": tool_params,
+                    "reasoning": "Tool access requires approval from user",
+                    "priority": "normal",
+                    "timestamp": datetime.now(timezone.utc).isoformat(),
+                    "status": "pending",
+                    "entity_id": entity_id,
+                    "requesting_config_id": requesting_config_id,
+                    "approving_config_id": "base",
+                }
+
+                # For approval requests, we need to find the base user to notify
+                # The requesting_config_id might be a background agent, but we want to notify the human user
+                target_user_id = (
+                    requesting_config_id
+                    if requesting_config_id not in ["background_agent"]
+                    else "base"
+                )
+
+                # If we can't determine a specific user, broadcast to all users in the tenant
+                if target_user_id == "base":
+                    # Try to find any active user in this tenant for the notification
+                    # For now, broadcast to all users in the tenant
+                    await websocket_manager.broadcast_to_tenant(
+                        tenant_id=entity_id,
+                        message=WebSocketMessage(
+                            message_type="approval", data=approval_data
+                        ),
+                    )
+                else:
+                    await websocket_manager.send_approval_request(
+                        tenant_id=entity_id,
+                        user_id=target_user_id,
+                        approval_data=approval_data,
+                    )
+
+                logger.debug(
+                    f"Broadcasted approval request via WebSocket for {tool_name}"
+                )
+            except Exception as ws_error:
+                logger.error(
+                    f"Failed to broadcast approval request via WebSocket: {ws_error}"
+                )
+                # Don't fail the whole operation if WebSocket broadcast fails
+
             return approval_id
 
         except Exception as e:

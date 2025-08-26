@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useApprovals } from '../context/ApprovalContext';
+import { useApprovals } from '../context/ApprovalContext_WebSocket';
 import '../styles/ApprovalsPage.css';
 
 const ApprovalsPage = () => {

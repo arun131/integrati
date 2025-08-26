@@ -1,6 +1,7 @@
 # Core web framework
 fastapi
 uvicorn[standard]
+websockets
 
 # MCP and FastMCP
 fastmcp>=2.10.0

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useApprovals } from '../context/ApprovalContext';
+import { useApprovals } from '../context/ApprovalContext_WebSocket';
 import { useNavigate } from 'react-router-dom';
 import '../styles/ApprovalNotification.css';
 
