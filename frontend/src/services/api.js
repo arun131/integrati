@@ -239,4 +239,67 @@ export const chatbotApi = {
     }
 };
 
+// Approval API functions
+export const approvalApi = {
+    // Get pending approval requests
+    getPendingApprovals: async () => {
+        const response = await api.get('/api/approvals/pending');
+        return response.data;
+    },
+
+    // Get approval history
+    getApprovalHistory: async () => {
+        const response = await api.get('/api/approvals/history');
+        return response.data;
+    },
+
+    // Approve a request
+    approveRequest: async (approvalId, reason = '', token = null) => {
+        const requestBody = { reason: reason };
+        if (token) {
+            requestBody.base_config_token = token;
+        }
+
+        const response = await api.post(`/api/approvals/${approvalId}/approve`, requestBody);
+        return response.data;
+    },
+
+    // Deny a request
+    denyRequest: async (approvalId, reason = '') => {
+        const response = await api.post(`/api/approvals/${approvalId}/deny`, {
+            reason: reason
+        });
+        return response.data;
+    }
+};
+
+// Notification API functions
+export const notificationApi = {
+    // Get user notifications
+    getNotifications: async (limit = 20, includeRead = false) => {
+        const response = await api.get('/notifications', {
+            params: { limit, include_read: includeRead }
+        });
+        return response.data;
+    },
+
+    // Get unread notification count
+    getNotificationCount: async () => {
+        const response = await api.get('/notifications/count');
+        return response.data;
+    },
+
+    // Mark a notification as read
+    markNotificationAsRead: async (notificationId) => {
+        const response = await api.post(`/notifications/${notificationId}/mark-read`);
+        return response.data;
+    },
+
+    // Mark all notifications as read
+    markAllNotificationsAsRead: async () => {
+        const response = await api.post('/notifications/mark-all-read');
+        return response.data;
+    }
+};
+
 export default api;

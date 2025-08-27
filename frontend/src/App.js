@@ -7,7 +7,12 @@ import GmailIntegrationPage from './pages/GmailIntegrationPage';
 import CalendarIntegrationPage from './pages/CalendarIntegrationPage';
 import SendEmailPage from './pages/SendEmailPage';
 import CreateEventPage from './pages/CreateEventPage';
+import ApprovalsPage from './pages/ApprovalsPage';
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { WebSocketProvider } from './context/WebSocketContext';
+import { ApprovalProvider } from './context/ApprovalContext_WebSocket';
+import { NotificationProvider } from './context/NotificationContext_WebSocket';
+import ApprovalNotification from './components/ApprovalNotification';
 
 const PrivateRoute = ({ children }) => {
     const { user, token, loading } = useAuth();
@@ -28,7 +33,11 @@ function App() {
     return (
         <Router>
             <AuthProvider>
-                <Routes>
+                <WebSocketProvider>
+                    <NotificationProvider>
+                        <ApprovalProvider>
+                            <ApprovalNotification />
+                            <Routes>
                     <Route path="/login" element={<LoginPage />} />
                     <Route
                         path="/dashboard"
@@ -78,9 +87,20 @@ function App() {
                             </PrivateRoute>
                         }
                     />
-                    <Route path="/" element={<Navigate to="/login" replace />} />
+                    <Route
+                        path="/approvals"
+                        element={
+                            <PrivateRoute>
+                                <ApprovalsPage />
+                            </PrivateRoute>
+                        }
+                    />
+                    <Route path="/" element={<Navigate to="/dashboard" />} />
                     <Route path="*" element={<Navigate to="/login" replace />} />
-                </Routes>
+                            </Routes>
+                        </ApprovalProvider>
+                    </NotificationProvider>
+                </WebSocketProvider>
             </AuthProvider>
         </Router>
     );

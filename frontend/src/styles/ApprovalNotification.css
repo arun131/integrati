@@ -1,0 +1,124 @@
+/* Approval Notification Styles */
+.approval-notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    width: 350px;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-radius: 12px;
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+    cursor: pointer;
+    z-index: 1000;
+    animation: slideIn 0.3s ease-out;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}
+
+.approval-notification:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.4);
+}
+
+.notification-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 16px 20px 12px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.notification-icon {
+    font-size: 1.5em;
+    margin-right: 12px;
+}
+
+.notification-title {
+    flex: 1;
+    font-weight: 600;
+    font-size: 1.1em;
+}
+
+.notification-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5em;
+    cursor: pointer;
+    padding: 0;
+    width: 24px;
+    height: 24px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    transition: background-color 0.2s ease;
+}
+
+.notification-close:hover {
+    background-color: rgba(255, 255, 255, 0.2);
+}
+
+.notification-content {
+    padding: 12px 20px;
+}
+
+.notification-tool {
+    font-weight: 600;
+    font-size: 1.05em;
+    margin-bottom: 6px;
+    color: #fff;
+}
+
+.notification-config {
+    font-size: 0.9em;
+    opacity: 0.9;
+    margin-bottom: 4px;
+}
+
+.notification-time {
+    font-size: 0.8em;
+    opacity: 0.7;
+}
+
+.notification-action {
+    padding: 12px 20px 16px;
+    font-size: 0.9em;
+    opacity: 0.8;
+    font-style: italic;
+    text-align: center;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .approval-notification {
+        width: calc(100% - 40px);
+        right: 20px;
+        left: 20px;
+        top: 10px;
+    }
+
+    .notification-header {
+        padding: 14px 16px 10px;
+    }
+
+    .notification-content {
+        padding: 10px 16px;
+    }
+
+    .notification-action {
+        padding: 10px 16px 14px;
+    }
+}

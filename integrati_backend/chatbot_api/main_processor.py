@@ -11,6 +11,8 @@ from mcp import ClientSession
 from mcp.client.streamable_http import streamablehttp_client
 
 from .conversation_manager import ConversationManager
+from integrations.gmail.agents_def import get_gmail_agent
+from integrations.calendar.agents_def import get_calendar_agent
 
 logger = logging.getLogger(__name__)
 
@@ -18,28 +20,29 @@ logger = logging.getLogger(__name__)
 _dspy_configured = False
 
 # Tool name constants for categorization
-# Use fallback constants to avoid circular import issues during testing
+# Import actual tool names from constants and add categorization keywords
+try:
+    from integrations.gmail.constants import GMAIL_TOOL_NAMES as GMAIL_ACTUAL_TOOLS
+    from integrations.calendar.constants import (
+        CALENDAR_TOOL_NAMES as CALENDAR_ACTUAL_TOOLS,
+    )
+except ImportError:
+    # Fallback in case of import issues during testing
+    GMAIL_ACTUAL_TOOLS = []
+    CALENDAR_ACTUAL_TOOLS = []
+
+# Combine actual tool names with categorization keywords
 GMAIL_TOOL_NAMES = [
     "gmail",
     "email",
     "mail",
-    "search_gmail_messages",
-    "get_last_received_email",
-    "send_gmail_message",
-    "get_gmail_message",
-    "get_unread_email_count",
-    "search_gmail_by_sender",
-    "search_gmail_by_subject",
-]
+] + GMAIL_ACTUAL_TOOLS
+
 CALENDAR_TOOL_NAMES = [
     "calendar",
     "event",
     "schedule",
-    "create_calendar_event",
-    "get_calendar_events",
-    "update_calendar_event",
-    "delete_calendar_event",
-]
+] + CALENDAR_ACTUAL_TOOLS
 COMMON_TOOL_NAMES = [
     "add",
     "subtract",
@@ -122,57 +125,35 @@ class DSPyOrchestrator(dspy.Signature):
     response: str = dspy.OutputField(desc="The response to the user's query")
 
 
-class GmailAgent(dspy.Signature):
-    """
-    You are a Gmail agent that can handle the user's Gmail-related requests.
-    You are given Gmail-specific tools and must decide which to use to fulfill the request.
-    """
-
-    user_query: str = dspy.InputField(desc="The user's Gmail-related query")
-    request_context: dict = dspy.InputField(desc="Context passed from the orchestrator")
-
-    tools_used: list[str] = dspy.OutputField(
-        desc="The Gmail tools used to fulfill the request"
-    )
-    reasoning: str = dspy.OutputField(desc="The reasoning process of the Gmail agent")
-    response: str = dspy.OutputField(desc="The Gmail-related response to the query")
-
-
-class CalendarAgent(dspy.Signature):
-    """
-    You are a Calendar agent that can handle the user's calendar-related requests.
-    You are given Calendar-specific tools and must decide which to use to fulfill the request.
-    """
-
-    user_query: str = dspy.InputField(desc="The user's Calendar-related query")
-    request_context: dict = dspy.InputField(desc="Context passed from the orchestrator")
-
-    tools_used: list[str] = dspy.OutputField(
-        desc="The Calendar tools used to fulfill the request"
-    )
-    reasoning: str = dspy.OutputField(
-        desc="The reasoning process of the Calendar agent"
-    )
-    response: str = dspy.OutputField(desc="The Calendar-related response to the query")
-
-
-async def create_fresh_mcp_connection(tenant_id: str, token: str):
-    """Create a fresh MCP connection for each request."""
+async def create_fresh_mcp_connection(
+    tenant_id: str, token: str, config_id: str = "base"
+):
+    """Create MCP connection with config-aware tool filtering."""
     mcp_backend_url = os.getenv("MCP_BACKEND_URL", "http://localhost:8000")
     url = f"{mcp_backend_url}/mcp/{tenant_id}"
 
     try:
         # Create the connection and session
         stream = streamablehttp_client(
-            url, headers={"Authorization": f"Bearer {token}"}
+            url,
+            headers={
+                "Authorization": f"Bearer {token}"
+                # Config ID is now determined from the token itself on the server side
+            },
         )
         (read, write, _) = await stream.__aenter__()
         session = ClientSession(read, write)
         await session.__aenter__()
         await session.initialize()
+
+        # Always use session.list_tools() for consistency with original working approach
+        # The server handles config-based filtering via X-Config-ID header automatically
         tools_result = await session.list_tools()
-        logger.info(f"Connected to MCP server for tenant {tenant_id}")
+        logger.info(
+            f"Connected to MCP server for tenant {tenant_id} with config {config_id}"
+        )
         return tools_result.tools, session, stream
+
     except Exception as e:
         logger.error(f"Failed to connect to MCP server for tenant {tenant_id}: {e}")
         return [], None, None
@@ -329,8 +310,8 @@ async def process_chatbot_request(
             # 5. Create subagents using the appropriate tools
             agents = {}
             if "gmail" in integrations and gmail_dspy_tools:
-                agents["gmail_agent"] = dspy.ReAct(
-                    signature=GmailAgent, tools=gmail_dspy_tools
+                agents["gmail_agent"] = get_gmail_agent(
+                    gmail_dspy_tools, trigger="chatbot"
                 )
                 logger.info(f"Created Gmail agent with {len(gmail_dspy_tools)} tools")
             else:
@@ -339,8 +320,8 @@ async def process_chatbot_request(
                 )
 
             if "calendar" in integrations and calendar_dspy_tools:
-                agents["calendar_agent"] = dspy.ReAct(
-                    signature=CalendarAgent, tools=calendar_dspy_tools
+                agents["calendar_agent"] = get_calendar_agent(
+                    calendar_dspy_tools, trigger="chatbot"
                 )
                 logger.info(
                     f"Created Calendar agent with {len(calendar_dspy_tools)} tools"

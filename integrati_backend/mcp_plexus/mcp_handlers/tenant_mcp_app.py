@@ -83,6 +83,22 @@ try:
 except Exception as e:
     logger.error(f"Failed to register common tools: {e}")
 
+# Pre-load ALL integration tools at startup to avoid runtime registration
+logger.info("Pre-loading all integration tools at startup")
+integration_modules = {
+    "gmail": "integrations.gmail.tools",
+    "calendar": "integrations.calendar.tools",
+}
+
+for integration_name, module_path in integration_modules.items():
+    try:
+        import importlib
+
+        importlib.import_module(module_path)
+        logger.info(f"Pre-loaded {integration_name} tools from {module_path}")
+    except Exception as e:
+        logger.error(f"Failed to pre-load {integration_name} tools: {e}")
+
 # Log registered tools for verification
 if shared_fastmcp_server_instance and hasattr(
     shared_fastmcp_server_instance, "_tool_manager"

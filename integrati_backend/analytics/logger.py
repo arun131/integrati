@@ -29,6 +29,7 @@ class AnalyticsLogger:
         self,
         entity_id: str,
         user_id: str,
+        config_id: str,
         client_name: str,
         tool_name: str,
         parameters: Dict[str, Any],
@@ -43,6 +44,7 @@ class AnalyticsLogger:
             log_entry = MCPRequestLog(
                 entity_id=entity_id,
                 user_id=user_id,
+                config_id=config_id,
                 client_name=client_name,
                 tool_name=tool_name,
                 parameters=parameters,

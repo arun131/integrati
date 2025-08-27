@@ -9,19 +9,11 @@ from mcp_plexus.plexus_context import PlexusContext
 from mcp_plexus.oauth.errors import PlexusExternalAuthRequiredError
 
 from .api import CalendarAPI
+from ..utils import PermissionHelper
 
 logger = logging.getLogger(__name__)
 
-# Tool names for smart categorization
-CALENDAR_TOOL_NAMES = [
-    "get_calendar_events",
-    "create_calendar_event",
-    "update_calendar_event",
-    "delete_calendar_event",
-    "get_calendar_event",
-    "search_calendar_events",
-    "get_upcoming_events",
-]
+# Import constants from separate file to avoid circular imports
 
 
 class CalendarTools:
@@ -44,6 +36,38 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="get_calendar_events",
+                tool_params={
+                    "max_results": max_results,
+                    "time_min": time_min,
+                    "time_max": time_max,
+                },
+                no_access_response={
+                    "events": [],
+                    "count": 0,
+                    "max_results": max_results,
+                    "time_min": time_min,
+                    "time_max": time_max,
+                    "status_message": "You don't have permission to read calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "events": [],
+                    "count": 0,
+                    "max_results": max_results,
+                    "time_min": time_min,
+                    "time_max": time_max,
+                },
+                approval_message="Your request to get calendar events was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             events = await calendar_api.get_events(max_results, time_min, time_max)
 
@@ -53,6 +77,7 @@ class CalendarTools:
                 "max_results": max_results,
                 "time_min": time_min,
                 "time_max": time_max,
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -82,6 +107,37 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="create_calendar_event",
+                tool_params={
+                    "summary": summary,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "description": description,
+                    "attendees": attendees,
+                    "location": location,
+                },
+                no_access_response={
+                    "event": None,
+                    "status": "access_denied",
+                    "message": "You don't have permission to create calendar events with this configuration.",
+                    "status_message": "You don't have permission to create calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "event": None,
+                    "status": "approval_required",
+                    "message": "Calendar event creation request sent for approval.",
+                },
+                approval_message=f"Your request to create calendar event '{summary}' was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             event = await calendar_api.create_event(
                 summary, start_time, end_time, description, attendees, location
@@ -91,6 +147,7 @@ class CalendarTools:
                 "event": event,
                 "status": "created",
                 "message": "Calendar event created successfully",
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -120,6 +177,37 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="update_calendar_event",
+                tool_params={
+                    "event_id": event_id,
+                    "summary": summary,
+                    "start_time": start_time,
+                    "end_time": end_time,
+                    "description": description,
+                    "location": location,
+                },
+                no_access_response={
+                    "event": None,
+                    "status": "access_denied",
+                    "message": "You don't have permission to update calendar events with this configuration.",
+                    "status_message": "You don't have permission to update calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "event": None,
+                    "status": "approval_required",
+                    "message": "Calendar event update request sent for approval.",
+                },
+                approval_message=f"Your request to update calendar event {event_id} was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             event = await calendar_api.update_event(
                 event_id, summary, start_time, end_time, description, location
@@ -129,6 +217,7 @@ class CalendarTools:
                 "event": event,
                 "status": "updated",
                 "message": "Calendar event updated successfully",
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -152,6 +241,30 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="delete_calendar_event",
+                tool_params={"event_id": event_id},
+                no_access_response={
+                    "status": "access_denied",
+                    "event_id": event_id,
+                    "message": "You don't have permission to delete calendar events with this configuration.",
+                    "status_message": "You don't have permission to delete calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "status": "approval_required",
+                    "event_id": event_id,
+                    "message": "Calendar event deletion request sent for approval.",
+                },
+                approval_message=f"Your request to delete calendar event {event_id} was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             success = await calendar_api.delete_event(event_id)
 
@@ -160,6 +273,7 @@ class CalendarTools:
                     "status": "deleted",
                     "event_id": event_id,
                     "message": "Calendar event deleted successfully",
+                    "status_message": "success",
                 }
             else:
                 raise ToolError("Failed to delete calendar event")
@@ -185,13 +299,42 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="get_calendar_event",
+                tool_params={"event_id": event_id},
+                no_access_response={
+                    "event": None,
+                    "found": False,
+                    "message": "You don't have permission to read calendar events with this configuration.",
+                    "status_message": "You don't have permission to read calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "event": None,
+                    "found": False,
+                    "message": "Calendar event access request sent for approval.",
+                },
+                approval_message=f"Your request to get calendar event {event_id} was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             event = await calendar_api.get_event(event_id)
 
             if event:
-                return {"event": event, "found": True}
+                return {"event": event, "found": True, "status_message": "success"}
             else:
-                return {"event": None, "found": False, "message": "Event not found"}
+                return {
+                    "event": None,
+                    "found": False,
+                    "message": "Event not found",
+                    "status_message": "success",
+                }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
                 "Calendar integration not authenticated. Please add Calendar integration first."
@@ -214,6 +357,32 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="search_calendar_events",
+                tool_params={"query": query, "max_results": max_results},
+                no_access_response={
+                    "events": [],
+                    "count": 0,
+                    "query": query,
+                    "max_results": max_results,
+                    "status_message": "You don't have permission to search calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "events": [],
+                    "count": 0,
+                    "query": query,
+                    "max_results": max_results,
+                },
+                approval_message=f"Your request to search calendar events with query '{query}' was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             events = await calendar_api.search_events(query, max_results)
 
@@ -222,6 +391,7 @@ class CalendarTools:
                 "count": len(events),
                 "query": query,
                 "max_results": max_results,
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(
@@ -245,6 +415,32 @@ class CalendarTools:
             if not user_id:
                 raise ToolError("User ID not available in context")
 
+            # Check permissions using helper
+            permission_result = await PermissionHelper.check_and_handle_permissions(
+                entity_id=entity_id,
+                user_id=user_id,
+                tool_name="get_upcoming_events",
+                tool_params={"days": days},
+                no_access_response={
+                    "events": [],
+                    "count": 0,
+                    "days": days,
+                    "message": "You don't have permission to read calendar events with this configuration.",
+                    "status_message": "You don't have permission to read calendar events with this configuration.",
+                },
+                restricted_access_response={
+                    "events": [],
+                    "count": 0,
+                    "days": days,
+                    "message": "Upcoming events request sent for approval.",
+                },
+                approval_message=f"Your request to get upcoming events for the next {days} days was received but you have restricted access to this tool so the request is sent to the user for final approval on the app.",
+                integration_type="calendar",
+            )
+
+            if permission_result is not None:
+                return permission_result
+
             calendar_api = CalendarAPI(entity_id, user_id)
             events = await calendar_api.get_upcoming_events(days)
 
@@ -253,6 +449,7 @@ class CalendarTools:
                 "count": len(events),
                 "days": days,
                 "message": f"Upcoming events for the next {days} days",
+                "status_message": "success",
             }
         except PlexusExternalAuthRequiredError:
             raise ToolError(

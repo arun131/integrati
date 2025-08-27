@@ -25,20 +25,67 @@ export const AuthProvider = ({ children }) => {
 
     useEffect(() => {
         const unsubscribe = onAuthStateChanged(auth, async (user) => {
+            console.log('=== AUTH STATE CHANGED ===');
+            console.log('User:', user ? user.email : 'null');
+            console.log('Current plexusToken:', plexusToken ? 'exists' : 'null');
+
             setUser(user);
 
             // If we have a Firebase user, proceed directly to tenant registration
             if (user && !plexusToken) {
                 try {
                     setUserEmail(user.email);
+                    console.log('Starting token exchange for user:', user.email);
 
-                    // Proceed directly to tenant registration without JWT token
-                    await exchangeFirebaseToken(user.getIdToken());
+                    // Add retry logic for token exchange
+                    let retryCount = 0;
+                    const maxRetries = 3;
+
+                    while (retryCount < maxRetries) {
+                        try {
+                            console.log(`Token exchange attempt ${retryCount + 1}/${maxRetries}`);
+
+                            // Wait a bit for Firebase to fully initialize
+                            if (retryCount > 0) {
+                                const waitTime = 1000 * retryCount;
+                                console.log(`Waiting ${waitTime}ms before retry...`);
+                                await new Promise(resolve => setTimeout(resolve, waitTime));
+                            }
+
+                            // Check if user is still valid
+                            if (!auth.currentUser) {
+                                throw new Error('Firebase user no longer valid');
+                            }
+
+                            const idToken = await user.getIdToken();
+                            console.log('getIdToken result:', idToken ? `Token length: ${idToken.length}` : 'null');
+
+                            if (!idToken) {
+                                throw new Error('Firebase token not ready yet');
+                            }
+
+                            const result = await exchangeFirebaseToken(idToken);
+                            if (result) {
+                                console.log('Token exchange successful on attempt', retryCount + 1);
+                                break; // Success, exit retry loop
+                            }
+                        } catch (error) {
+                            console.error(`Token exchange attempt ${retryCount + 1} failed:`, error);
+                            retryCount++;
+
+                            if (retryCount >= maxRetries) {
+                                console.error('All token exchange attempts failed');
+                                setTenantRegistrationError('Failed to authenticate after multiple attempts. Please try logging in again.');
+                                // Don't throw, just log the error
+                            }
+                        }
+                    }
                 } catch (error) {
                     console.error('Error during tenant registration:', error);
                 }
             } else if (!user) {
                 // User signed out, clear all tokens and data
+                console.log('User signed out, clearing tokens');
                 setToken(null);
                 setUserEmail(null);
                 setPlexusToken(null);
@@ -52,6 +99,30 @@ export const AuthProvider = ({ children }) => {
         return () => unsubscribe();
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [plexusToken]);
+
+    // Add automatic token refresh logic
+    useEffect(() => {
+        if (!user) return;
+
+        // Set up token refresh every 50 minutes (Firebase tokens expire in 1 hour)
+        const tokenRefreshInterval = setInterval(async () => {
+            try {
+                console.log('Refreshing Firebase token...');
+                const newToken = await user.getIdToken(true); // Force refresh
+                console.log('Firebase token refreshed successfully');
+
+                // Exchange the new token for a fresh Plexus token
+                await exchangeFirebaseToken(newToken);
+            } catch (error) {
+                console.error('Error refreshing Firebase token:', error);
+                // If refresh fails, redirect to login
+                navigate('/login');
+            }
+        }, 50 * 60 * 1000); // 50 minutes
+
+        // Clean up interval
+        return () => clearInterval(tokenRefreshInterval);
+    }, [user, navigate]);
 
     useEffect(() => {
         // Store all tokens and identifiers in localStorage
@@ -84,6 +155,12 @@ export const AuthProvider = ({ children }) => {
     const exchangeFirebaseToken = async (idToken) => {
         try {
             setTenantRegistrationError('');
+
+            // Debug logging
+            console.log('=== TOKEN EXCHANGE DEBUG ===');
+            console.log('idToken type:', typeof idToken);
+            console.log('idToken length:', idToken ? idToken.length : 'null');
+            console.log('idToken preview:', idToken ? `${idToken.substring(0, 20)}...` : 'null');
 
             // Validate idToken - be more strict about validation
             if (!idToken || typeof idToken !== 'string' || idToken.trim() === '') {
@@ -135,13 +212,45 @@ export const AuthProvider = ({ children }) => {
         }
     };
 
+    // Manual token refresh function for when API calls fail
+    const refreshToken = async () => {
+        if (!user) {
+            console.error('No user available for token refresh');
+            return false;
+        }
+
+        try {
+            console.log('Manually refreshing Firebase token...');
+            const newToken = await user.getIdToken(true); // Force refresh
+            console.log('Manual Firebase token refresh successful');
+
+            // Exchange the new token for a fresh Plexus token
+            const result = await exchangeFirebaseToken(newToken);
+            return result !== null;
+        } catch (error) {
+            console.error('Manual token refresh failed:', error);
+            // If manual refresh fails, redirect to login
+            navigate('/login');
+            return false;
+        }
+    };
+
     const signInWithGoogle = async () => {
         try {
             console.log('Starting Google sign in...');
             const result = await signInWithPopup(auth, googleProvider);
             console.log('Google sign in successful, getting ID token...');
+
+            // Wait a bit for Firebase to fully initialize the user
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const idToken = await result.user.getIdToken();
             console.log('ID token retrieved, length:', idToken ? idToken.length : 'null');
+
+            if (!idToken) {
+                throw new Error('Firebase token not ready after sign in');
+            }
+
             await exchangeFirebaseToken(idToken);
             return result.user;
         } catch (error) {
@@ -228,6 +337,7 @@ export const AuthProvider = ({ children }) => {
         signInWithGithub,
         signInWithEmail,
         signUpWithEmail,
+        refreshToken, // Add manual token refresh function
         tenantRegistrationError, // <-- keep this
     };
 

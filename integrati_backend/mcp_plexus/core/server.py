@@ -75,6 +75,7 @@ class MCPPlexusServer:
             server_settings: Optional server configuration settings
         """
         from ..mcp_handlers.tenant_mcp_app import shared_fastmcp_server_instance
+        from ..permissions.service import PermissionService
 
         self._fastmcp_instance: FastMCP = shared_fastmcp_server_instance
         self.plexus_settings = server_settings
@@ -86,6 +87,9 @@ class MCPPlexusServer:
         # Track which integration tool modules have been loaded to avoid duplicate imports
         self._loaded_connectors: Set[str] = set()
         self._tool_set_assignments: Dict[str, List[str]] = {}
+
+        # Initialize permission service for config-based tool access control
+        self.permission_service = PermissionService()
 
         logger.info(
             f"MCPPlexusServer initialized using shared FastMCP instance: {getattr(self._fastmcp_instance, 'name', 'None')}"
@@ -327,27 +331,9 @@ class MCPPlexusServer:
         # Check OAuth integration status for this tenant
         oauth_status = await self._get_tenant_oauth_status(entity_id)
 
-        # Dynamically import connector tool modules for connected integrations so their tools are registered
-        connector_module_map = {
-            "gmail": "integrations.gmail.tools",
-            "calendar": "integrations.calendar.tools",
-        }
-        for connector, is_connected in oauth_status.items():
-            if is_connected and connector not in self._loaded_connectors:
-                module_path = connector_module_map.get(connector)
-                if module_path:
-                    try:
-                        import importlib
-
-                        importlib.import_module(module_path)
-                        self._loaded_connectors.add(connector)
-                        logger.info(
-                            f"Loaded tool module '{module_path}' for connector '{connector}'"
-                        )
-                    except Exception as e:
-                        logger.error(
-                            f"Failed to load tool module '{module_path}' for connector '{connector}': {e}"
-                        )
+        # NOTE: Integration tools are now pre-loaded at startup in tenant_mcp_app.py
+        # This eliminates the need for dynamic loading during runtime and improves performance.
+        # The _loaded_connectors tracking is kept for backward compatibility but is no longer used.
 
         visible_tools: List[MCPTool] = []
         for tool_name, fmcp_tool_obj in source_tools_dict.items():
@@ -406,6 +392,64 @@ class MCPPlexusServer:
             return True
 
         return entity_id in allowed_tenants_for_tool
+
+    async def get_mcp_tools_list_for_config(
+        self,
+        entity_id: str,
+        config_id: str = "base",
+        tool_set_filter: Optional[str] = None,
+        mcp_session_id: Optional[str] = None,
+    ) -> List[MCPTool]:
+        """Get tools filtered by config permissions."""
+
+        # Get all available tools first
+        all_tools = await self.get_mcp_tools_list_for_tenant(
+            entity_id, tool_set_filter, mcp_session_id
+        )
+
+        # If base config, return all tools
+        if config_id == "base":
+            return all_tools
+
+        # Filter tools based on config permissions
+        filtered_tools = []
+        for tool in all_tools:
+            permission_check = await self.permission_service.check_tool_permission(
+                entity_id, config_id, tool.name
+            )
+
+            # Only show tools with RESTRICTED_ACCESS or FULL_ACCESS
+            if permission_check.permission_level != 1:  # Not NO_ACCESS
+                filtered_tools.append(tool)
+
+        logger.info(
+            f"get_mcp_tools_list_for_config (E:{entity_id}, C:{config_id}): Filtered {len(all_tools)} -> {len(filtered_tools)} tools"
+        )
+        return filtered_tools
+
+    async def can_tenant_call_tool_with_config(
+        self,
+        entity_id: str,
+        config_id: str,
+        tool_name: str,
+        tool_params: Dict[str, Any] = None,
+    ):
+        """Check if config can call tool and handle permissions."""
+
+        # First check basic tenant permissions
+        if not await self.can_tenant_call_tool(entity_id, tool_name):
+            from ..permissions.models import ToolPermissionResponse, ToolPermissionLevel
+
+            return ToolPermissionResponse(
+                allowed=False,
+                permission_level=ToolPermissionLevel.NO_ACCESS,
+                message="Tenant does not have access to this tool",
+            )
+
+        # Check config-specific permissions
+        return await self.permission_service.check_tool_permission(
+            entity_id, config_id, tool_name, tool_params
+        )
 
     async def _get_tenant_oauth_status(self, entity_id: str) -> Dict[str, bool]:
         """

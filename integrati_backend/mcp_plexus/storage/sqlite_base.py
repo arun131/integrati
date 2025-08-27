@@ -239,6 +239,26 @@ async def init_sqlite_db(conn: Optional[sqlite3.Connection] = None):
     """)
     logger.info("Ensured 'integration_webhook_keys' table exists.")
 
+    # Tool approval requests for restricted access permissions
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS tool_approval_requests (
+        approval_id TEXT PRIMARY KEY,
+        entity_id TEXT NOT NULL,
+        requesting_config_id TEXT NOT NULL,
+        approving_config_id TEXT NOT NULL DEFAULT 'base',
+        tool_name TEXT NOT NULL,
+        tool_params TEXT NOT NULL,
+        tool_context TEXT,
+        status TEXT NOT NULL DEFAULT 'pending' CHECK(status IN ('pending','approved','denied','executed')),
+        created_at TEXT NOT NULL,
+        responded_at TEXT,
+        response_reason TEXT,
+        executed_at TEXT,
+        execution_result TEXT
+    )
+    """)
+    logger.info("Ensured 'tool_approval_requests' table exists.")
+
     db_conn.commit()
     logger.info("SQLite database schema initialized/verified.")
 

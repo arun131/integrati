@@ -5,14 +5,14 @@ import os
 from unittest.mock import AsyncMock, MagicMock, patch
 from chatbot_api.main_processor import (
     DSPyOrchestrator,
-    GmailAgent,
-    CalendarAgent,
     create_fresh_mcp_connection,
     categorize_tools_smart,
     make_subagents_as_tools,
     process_chatbot_request,
     configure_dspy_once,
 )
+from integrations.gmail.agents_def import GmailAgentSignature
+from integrations.calendar.agents_def import CalendarAgentSignature
 
 
 class TestDSPySignatures:
@@ -39,8 +39,8 @@ class TestDSPySignatures:
         assert orchestrator.response == "Test response"
 
     def test_gmail_agent_signature(self):
-        """Test GmailAgent signature fields."""
-        agent = GmailAgent(
+        """Test GmailAgentSignature signature fields."""
+        agent = GmailAgentSignature(
             user_query="test gmail query",
             request_context={"context": "test"},
             tools_used=["gmail_tool"],
@@ -55,8 +55,8 @@ class TestDSPySignatures:
         assert agent.response == "Test response"
 
     def test_calendar_agent_signature(self):
-        """Test CalendarAgent signature fields."""
-        agent = CalendarAgent(
+        """Test CalendarAgentSignature signature fields."""
+        agent = CalendarAgentSignature(
             user_query="test calendar query",
             request_context={"context": "test"},
             tools_used=["calendar_tool"],

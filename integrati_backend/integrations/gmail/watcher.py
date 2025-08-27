@@ -258,6 +258,49 @@ class GmailWatcher(BaseIntegrationWatcher):
                             msg_id,
                         )
                         new_emails_count += 1
+
+                        # Trigger background agent processing
+                        try:
+                            import asyncio
+                            from chatbot_api.background_agent_helper import (
+                                process_background_request,
+                            )
+
+                            # Prepare event details for the background agent
+                            event_details = {
+                                "type": "new_email",
+                                "message_id": msg_id,
+                                "subject": headers.get("subject", ""),
+                                "from": headers.get("from", ""),
+                                "date": headers.get("date", ""),
+                                "labels": label_ids,
+                            }
+
+                            # Get user context
+                            user_context = {
+                                "email_address": email_address,
+                                "tenant_id": key.entity_id,
+                                "user_id": key.identity_key,
+                            }
+
+                            # Process in background (don't wait for result to avoid blocking webhook)
+                            asyncio.create_task(
+                                process_background_request(
+                                    tenant_id=key.entity_id,
+                                    user_id=key.identity_key,
+                                    integration_type="gmail",
+                                    event_details=event_details,
+                                    user_context=user_context,
+                                )
+                            )
+                            logger.info(
+                                f"Background agent processing triggered for new email: {msg_id}"
+                            )
+
+                        except Exception as bg_error:
+                            logger.error(
+                                f"Failed to trigger background agent for email {msg_id}: {bg_error}"
+                            )
                     except HttpError as e:
                         if e.resp.status == 401:
                             logger.error(
