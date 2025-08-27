@@ -1,0 +1,106 @@
+hey i am trying to build a set of functions for an Agent to use. The tools will be based on gmail, calendar api from google, Playwrite python package (for navigating websites), duck duck go search api, whatsapp. Suggest if anything else is needed.
+https://developers.google.com/workspace/gmail/api/reference/rest
+https://google-calendar-simple-api.readthedocs.io/en/latest/. find the others online
+
+the functions would be something generic like: 
+search_gmail_messages( query: str = "", max_results: int = 10 )
+get_last_received_email()
+send_gmail_message( to_email: str, subject: str, message_text: str, thread_id:Optional[str] = None, )
+create_calendar_event(
+summary: str,
+        start_time: str,
+        end_time: str,
+        description: str = "",
+        attendees: Optional[List[str]] = None,
+        location: str = "",
+    )
+these are just some example outputs I would like you to give me.
+
+The task examples I would like the agent to do are diverse proactive productivity tasks for the user.
+
+
+## Scenario 1: The Smart Contractor Renewal 🧐
+
+A contract renewal email arrives from a home services company. Instead of just flagging it, the agent immediately investigates. It recalls a past email thread where you expressed dissatisfaction with their service and notes the new contract is **20% more expensive**. The agent then performs a web search for competing local services, identifying a highly-rated alternative with better pricing.
+
+**Message to User:** "Hey, I received the renewal from contractor 'XX'. A heads-up: they've increased the price by 20% from last year. Given the issues we discussed with them before, I found 'YY Home Services' nearby. They have excellent reviews and appear to be more affordable. Would you like me to request a quote from them or draft a termination notice for 'XX'?"
+
+***
+
+## Scenario 2: Intelligent Inbox Curation 🧹
+
+An email that looks like a promotion from a new company appears in your primary inbox. The agent's first instinct is to move it to "Promotions." However, it cross-references your calendar and recent WhatsApp chats, discovering you were just discussing this specific brand with a friend. Realizing the email is currently relevant, it keeps it in the primary inbox but flags it with a note.
+
+**Message to User:** "That email from 'XX Brand' is in your inbox because I noticed you and Sarah were just talking about them. I'll start filtering their regular promotions automatically after this week so your inbox stays clean."
+
+***
+
+## Scenario 3: The Proactive Life Audit 📝
+
+The agent periodically reviews the last few months of communications to identify loose ends. It maps out key entities in your life—your bank, insurance provider, landlord, etc. During its audit, it flags a critical oversight: an insurance claim you filed requires a response, and the **deadline is in 48 hours**. It analyzes the email chain, finds the necessary policy documents in your cloud storage, and drafts a precise, factual reply.
+
+**Message to User:** "**URGENT:** The deadline to respond to your insurance claim is in two days. I've drafted a reply based on the claim history and your policy documents. Please review and approve it here. [Link to Draft]"
+
+***
+
+## Scenario 4: The Automated Job Application Assistant 💼
+
+While scanning a job alert email, the agent identifies a position that is an **exceptionally strong match** for your profile based on your resume and past application history. It navigates to the application portal, automatically fills out all the standard fields (name, address, work history), and customizes your resume to highlight keywords from the job description. It even drafts a compelling cover letter based on your previous successful templates.
+
+**Message to User:** "I found a perfect job match for you at 'Company Z'. I've already filled out the entire application, tailored your resume, and drafted a cover letter. Everything is saved and ready on the final submission page. Just give it a final look and hit 'Apply'. [Link to pre-filled application]"
+
+***
+
+## Scenario 5: The Predictive Calendar Conflict 🗓️
+
+You receive a meeting invitation from a colleague. Your calendar for that time appears free. However, the agent cross-references an email from your child's school and a recent WhatsApp message from your partner, realizing that the proposed meeting time clashes with an uncalendared but important parent-teacher conference.
+
+**Message to User:** "You received a meeting invite from 'XX', but it conflicts with the parent-teacher conference mentioned in the school's email. I've already replied to 'XX' suggesting a few alternative times based on your actual availability. I've also added the conference to your calendar with the school's address."
+
+***
+
+## Scenario 6: The WhatsApp Group Digest 💬
+
+The agent detects a high volume of unread messages in your "Neighborhood Watch" and "Family Events" WhatsApp groups. Instead of letting you scroll through hundreds of messages, it reads the threads and synthesizes the key information. It identifies a specific discussion about a local road closure and a separate thread finalizing dates for a family reunion.
+
+**Message to User:** "Quick summary from your group chats: The 'Neighborhood Watch' group is discussing a road closure on Main St. this weekend. In the 'Family Events' chat, everyone has agreed on August 15th for the reunion. I've added a tentative event to your calendar."
+
+---
+ 
+
+## Scenario 7: The Travel Disruption Manager ✈️
+
+You're at the airport when you get an email: your connecting flight is **cancelled**. Before you can even feel the stress, the agent springs into action. It instantly accesses the airline's website to find the next available flight, simultaneously checks your calendar to see if the delay will make you late for your scheduled meeting, and pre-books (waits until approval) a later airport taxi at your destination. It then drafts an email to your meeting attendees informing them of the delay and your new ETA. 
+
+**Message to User:** "Your flight to Denver was just cancelled. I've already filled the form to re-book you on the 5:30 PM flight, which was the last available seat. This will get you in at 7:45 PM. You just need to review and approve. I've notified your dinner meeting of the delay and rescheduled your taxi. Here is your new boarding pass. [Link to boarding pass]" 
+
+***
+
+## Scenario 8: Proactive Financial Anomaly Detection 💰
+
+Your monthly credit card statement arrives via email. The agent scans the bill and identifies a recurring charge from a subscription service you haven't used in months. It cross-references your email archives to find the original sign-up email and the cancellation instructions.
+
+**Message to User:** "I noticed you're still being charged $14.99/month for 'Pro Video Editor', but it looks like you haven't used it since January. I found the cancellation page. Would you like me to go ahead and cancel this subscription for you?"
+
+***
+
+## Scenario 9: Seamless Social Coordination 🎉
+
+In a group chat, a friend asks, "Everyone free for a game night next week?" The agent reads the message, checks your personal and work calendars for potential evenings, and sees that you have a "Project Deadline" event marked on Thursday. It knows you prefer not to make plans on nights before a big deadline.
+
+**Message to User:** "Your friends are planning a game night. Based on your calendar, next Friday or Saturday evening looks best for you, as Thursday is your project deadline. Shall I suggest 'Friday' to the group on your behalf?"
+
+***
+
+## Scenario 10: Health and Wellness Integration 🩺
+
+You get an email confirming your annual physical exam. The agent not only adds it to your calendar with travel time but also reviews your health data. It pulls your recent sleep and heart rate trends from your fitness tracker app and locates the PDF of your last blood test results from your email history. It then compiles this information into a concise summary document.
+
+**Message to User:** "Reminder: your physical is tomorrow. I've compiled a document with your key health stats from the last 6 months, including your recent blood work and the sleep pattern data you were concerned about. It's ready on your phone to show the doctor. [Link to Health Summary]"
+
+
+Think carefully and slowly
+
+
+
+I want you to give me suggestions of functions/tools with which an agent would be able to achieve all these tasks with simple docstring. Give me all set of useful tools that will help the agent achieve these with ease. Group them based to their provider.   I just need the tool names and input output variables, dont need the full functions

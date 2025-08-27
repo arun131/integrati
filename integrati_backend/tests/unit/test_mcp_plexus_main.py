@@ -1,4 +1,4 @@
-"""Unit tests for MCP Plexus main module."""
+"""Unit tests for MCP Plexus main application."""
 
 import pytest
 import json
@@ -9,6 +9,7 @@ from mcp_plexus.main import (
     PlexusMCPEndpoint,
     mcp_starlette_router,
 )
+from mcp_plexus.settings import settings
 
 
 class TestAppConfiguration:
@@ -16,7 +17,7 @@ class TestAppConfiguration:
 
     def test_app_title_and_version(self):
         """Test app title and version configuration."""
-        assert app.title == "MCP Plexus"
+        assert app.title == settings.app_name
         assert app.version == "0.2.1"
         assert app.debug is False
 
@@ -400,7 +401,7 @@ class TestHealthEndpoints:
         result = await root_api()
 
         assert "message" in result
-        assert "MCP Plexus" in result["message"]
+        assert settings.app_name in result["message"]
 
     @pytest.mark.asyncio
     @patch("mcp_plexus.main.get_sqlite_db_connection")

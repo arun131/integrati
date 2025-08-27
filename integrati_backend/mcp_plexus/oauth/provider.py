@@ -3,8 +3,8 @@
 import logging
 from typing import Dict, Any, Optional
 
-from integrations.gmail.auth import GmailAuth
-from integrations.calendar.auth import CalendarAuth
+from integrations.gmail.unified_auth import UnifiedGmailAuth
+from integrations.calendar.unified_auth import UnifiedCalendarAuth
 
 logger = logging.getLogger(__name__)
 
@@ -16,8 +16,8 @@ class OAuthProvider:
         """Initialize OAuth provider for a specific integration."""
         self.integration_name = integration_name
 
-        # Map integration names to their auth classes
-        self.auth_classes = {"gmail": GmailAuth, "calendar": CalendarAuth}
+        # Map integration names to their unified auth classes
+        self.auth_classes = {"gmail": UnifiedGmailAuth, "calendar": UnifiedCalendarAuth}
 
         if integration_name not in self.auth_classes:
             raise ValueError(f"Unsupported integration: {integration_name}")
