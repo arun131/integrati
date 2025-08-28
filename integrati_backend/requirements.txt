@@ -9,7 +9,7 @@ mcp
 
 # Database and storage
 redis
-SQLAlchemy==2.0.32
+SQLAlchemy>=2.0.32
 pydantic-settings
 
 # Environment and configuration

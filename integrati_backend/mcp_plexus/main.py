@@ -111,30 +111,51 @@ plexus_tenant_store_instance: Optional[AbstractTenantStore] = None
 tenant_external_token_store_instance: Optional[AbstractTenantExternalTokenStore] = None
 tenant_config_store_instance: Optional[AbstractTenantConfigStore] = None
 
+
 # Initialize FastMCP HTTP session manager if MCP components are available
-if StreamableHTTPSessionManager:
+def _initialize_mcp_session_manager():
+    """Initialize the FastMCP HTTP session manager if MCP components are available."""
+    if not StreamableHTTPSessionManager:
+        logger.warning(
+            "StreamableHTTPSessionManager not available, MCP handling will be limited."
+        )
+        return None
+
+    # Find the underlying MCP server app
     actual_mcp_server_app_for_manager = None
     if (
         hasattr(shared_fastmcp_server_instance, "_mcp_server")
         and shared_fastmcp_server_instance._mcp_server
     ):
         actual_mcp_server_app_for_manager = shared_fastmcp_server_instance._mcp_server
+        logger.debug("Found MCP server app via _mcp_server attribute.")
     elif hasattr(shared_fastmcp_server_instance, "app") and hasattr(
         shared_fastmcp_server_instance.app, "create_initialization_options"
     ):
         actual_mcp_server_app_for_manager = shared_fastmcp_server_instance.app
+        logger.debug("Found MCP server app via app attribute.")
 
     if actual_mcp_server_app_for_manager:
-        plexus_fastmcp_http_session_manager = StreamableHTTPSessionManager(
-            app=actual_mcp_server_app_for_manager
-        )
-        logger.info("FastMCP StreamableHTTPSessionManager instance created.")
+        try:
+            manager = StreamableHTTPSessionManager(
+                app=actual_mcp_server_app_for_manager
+            )
+            logger.info(
+                "FastMCP StreamableHTTPSessionManager instance created successfully."
+            )
+            return manager
+        except Exception as e:
+            logger.error(f"Failed to create StreamableHTTPSessionManager: {e}")
+            return None
     else:
         logger.error(
-            "Could not find underlying MCPServer app in shared_fastmcp_server_instance. Manager not created."
+            "Could not find underlying MCPServer app in shared_fastmcp_server_instance."
         )
-else:
-    logger.error("StreamableHTTPSessionManager not imported, MCP handling will fail.")
+        return None
+
+
+# Initialize the MCP session manager
+plexus_fastmcp_http_session_manager = _initialize_mcp_session_manager()
 
 
 @asynccontextmanager
