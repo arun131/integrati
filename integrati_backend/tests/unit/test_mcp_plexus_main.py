@@ -78,7 +78,6 @@ class TestLifespanManager:
     @patch("mcp_plexus.main.get_internal_oauth_token_store")
     @patch("mcp_plexus.main.get_internal_auth_code_store")
     @patch("mcp_plexus.main.get_external_oauth_provider_config_store")
-    @patch("mcp_plexus.main.get_user_external_token_store")
     @patch("mcp_plexus.main.get_internal_oauth_client_store")
     @patch("mcp_plexus.main.get_sqlite_tenant_store")
     @patch("mcp_plexus.main.get_tenant_external_token_store")
@@ -93,7 +92,6 @@ class TestLifespanManager:
         mock_tenant_external,
         mock_tenant_store,
         mock_oauth_client,
-        mock_user_external,
         mock_external_oauth,
         mock_auth_code,
         mock_oauth_token,
@@ -111,7 +109,6 @@ class TestLifespanManager:
         mock_oauth_token.return_value = MagicMock()
         mock_auth_code.return_value = MagicMock()
         mock_external_oauth.return_value = MagicMock()
-        mock_user_external.return_value = MagicMock()
 
         # Mock OAuth client store with proper async methods
         mock_oauth_client_instance = MagicMock()

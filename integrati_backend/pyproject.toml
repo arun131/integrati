@@ -20,16 +20,14 @@ dependencies = [
     "mcp>=1.12.0",
     # Database and storage
     "redis>=6.2.0",
-    "sqlalchemy==2.0.32",
+    "sqlalchemy>=2.0.32",
     "pydantic-settings>=2.10.0",
     # Environment and configuration
     "python-dotenv>=1.0.0",
     # HTTP client
     "httpx>=0.28.0",
     # CLI tools
-    "typer[all]>=0.16.0",
-    # HTTP requests (legacy, but still used)
-    "requests>=2.32.0",
+    "typer>=0.16.0",
     # Security and encryption
     "cryptography>=45.0.0",
     "python-jose[cryptography]==3.3.0",
@@ -45,7 +43,6 @@ dependencies = [
     # AI and DSPy - Latest version with Python 3.12+ support
     "dspy-ai>=3.0.1",
     "openai>=1.0.0,<2.0.0",
-    "litellm>=1.0.0,<2.0.0",
 ]
 
 [project.scripts]
@@ -74,21 +71,21 @@ dev-dependencies = [
 
 [tool.black]
 line-length = 88
-target-version = ['py311']
+target-version = ['py312']
 
 [tool.isort]
 profile = "black"
 line_length = 88
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 warn_return_any = true
 warn_unused_configs = true
 disallow_untyped_defs = true
 
 [tool.ruff]
 line-length = 88
-target-version = "py311"
+target-version = "py312"
 
 [tool.ruff.lint]
 select = [

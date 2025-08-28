@@ -1,5 +1,6 @@
 # mcp_plexus/cli/admin_cli.py
 import typer
+import asyncio
 from . import tenant_cli
 from . import ext_oauth_cli
 
@@ -16,7 +17,7 @@ app.add_typer(ext_oauth_cli.app, name="ext-oauth")
 @app.callback()
 def admin_callback():
     """
-    MCP Plexus Admin CLI entry point callback.
+    MCP PCP Plexus Admin CLI entry point callback.
 
     This callback is executed before any admin subcommand runs,
     providing a hook for global admin CLI initialization if needed.
@@ -25,4 +26,4 @@ def admin_callback():
 
 
 if __name__ == "__main__":
-    app()
+    asyncio.run(app())

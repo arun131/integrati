@@ -45,9 +45,7 @@ class GmailWatcher(BaseIntegrationWatcher):
         if not should_register:
             return
 
-        auth = UnifiedGmailAuth(
-            key.entity_id, key.identity_key, prefer_tenant_level=True
-        )
+        auth = UnifiedGmailAuth(key.entity_id, key.identity_key)
         credentials = await auth.get_valid_credentials()
         service = build("gmail", "v1", credentials=credentials)
 
@@ -170,9 +168,7 @@ class GmailWatcher(BaseIntegrationWatcher):
         last_history_id = state.get("last_history_id")
 
         try:
-            auth = UnifiedGmailAuth(
-                key.entity_id, key.identity_key, prefer_tenant_level=True
-            )
+            auth = UnifiedGmailAuth(key.entity_id, key.identity_key)
             credentials = await auth.get_valid_credentials()
             service = build("gmail", "v1", credentials=credentials)
         except Exception as auth_error:

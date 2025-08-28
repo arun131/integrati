@@ -17,14 +17,14 @@ from starlette.responses import JSONResponse, Response as StarletteResponse
 from starlette.routing import Route, Router as StarletteRouter
 from starlette.types import Receive, Scope, Send
 
-from .gmail_oauth.endpoints import gmail_oauth_router
+# Legacy Gmail OAuth router removed - using frontend_integration version instead
 from .mcp_handlers.tenant_mcp_app import shared_fastmcp_server_instance
 from .oauth.endpoints import oauth_router as plexus_internal_oauth_router
 from .oauth.storage import (
-    get_auth_code_store as get_internal_auth_code_store,
+    get_internal_auth_code_store,
     get_external_oauth_provider_config_store,
     get_internal_oauth_client_store,
-    get_oauth_token_store as get_internal_oauth_token_store,
+    get_internal_oauth_token_store,
     get_tenant_external_token_store,
 )
 from .oauth.storage_interfaces import (
@@ -33,9 +33,7 @@ from .oauth.storage_interfaces import (
     AbstractOAuthClientStore,
     AbstractOAuthTokenStore,
     AbstractTenantExternalTokenStore,
-    AbstractUserExternalTokenStore,
 )
-from .oauth.user_token_store import get_user_external_token_store
 from .oauth_providers_admin.endpoints import external_oauth_providers_admin_router
 from .plexus_auth.endpoints import plexus_auth_router
 from .plexus_auth.sqlite_user_auth_token_store import (
@@ -106,37 +104,58 @@ internal_auth_code_store_instance: Optional[AbstractAuthCodeStore] = None
 external_oauth_provider_config_store_instance: Optional[
     AbstractExternalOAuthProviderConfigStore
 ] = None
-user_external_token_store_instance: Optional[AbstractUserExternalTokenStore] = None
+
 internal_oauth_client_store_instance: Optional[AbstractOAuthClientStore] = None
 plexus_tenant_store_instance: Optional[AbstractTenantStore] = None
 # NEW: Global instances for new tenant-level components
 tenant_external_token_store_instance: Optional[AbstractTenantExternalTokenStore] = None
 tenant_config_store_instance: Optional[AbstractTenantConfigStore] = None
 
+
 # Initialize FastMCP HTTP session manager if MCP components are available
-if StreamableHTTPSessionManager:
+def _initialize_mcp_session_manager():
+    """Initialize the FastMCP HTTP session manager if MCP components are available."""
+    if not StreamableHTTPSessionManager:
+        logger.warning(
+            "StreamableHTTPSessionManager not available, MCP handling will be limited."
+        )
+        return None
+
+    # Find the underlying MCP server app
     actual_mcp_server_app_for_manager = None
     if (
         hasattr(shared_fastmcp_server_instance, "_mcp_server")
         and shared_fastmcp_server_instance._mcp_server
     ):
         actual_mcp_server_app_for_manager = shared_fastmcp_server_instance._mcp_server
+        logger.debug("Found MCP server app via _mcp_server attribute.")
     elif hasattr(shared_fastmcp_server_instance, "app") and hasattr(
         shared_fastmcp_server_instance.app, "create_initialization_options"
     ):
         actual_mcp_server_app_for_manager = shared_fastmcp_server_instance.app
+        logger.debug("Found MCP server app via app attribute.")
 
     if actual_mcp_server_app_for_manager:
-        plexus_fastmcp_http_session_manager = StreamableHTTPSessionManager(
-            app=actual_mcp_server_app_for_manager
-        )
-        logger.info("FastMCP StreamableHTTPSessionManager instance created.")
+        try:
+            manager = StreamableHTTPSessionManager(
+                app=actual_mcp_server_app_for_manager
+            )
+            logger.info(
+                "FastMCP StreamableHTTPSessionManager instance created successfully."
+            )
+            return manager
+        except Exception as e:
+            logger.error(f"Failed to create StreamableHTTPSessionManager: {e}")
+            return None
     else:
         logger.error(
-            "Could not find underlying MCPServer app in shared_fastmcp_server_instance. Manager not created."
+            "Could not find underlying MCPServer app in shared_fastmcp_server_instance."
         )
-else:
-    logger.error("StreamableHTTPSessionManager not imported, MCP handling will fail.")
+        return None
+
+
+# Initialize the MCP session manager
+plexus_fastmcp_http_session_manager = _initialize_mcp_session_manager()
 
 
 @asynccontextmanager
@@ -213,14 +232,12 @@ async def plexns_app_lifespan(app_instance: FastAPI):
     external_oauth_provider_config_store_instance = (
         await get_external_oauth_provider_config_store()
     )
-    user_external_token_store_instance = await get_user_external_token_store()
     internal_oauth_client_store_instance = await get_internal_oauth_client_store()
     initialized_stores.extend(
         [
             internal_oauth_token_store_instance,
             internal_auth_code_store_instance,
             external_oauth_provider_config_store_instance,
-            user_external_token_store_instance,
             internal_oauth_client_store_instance,
         ]
     )
@@ -942,7 +959,15 @@ app.add_middleware(
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    # Allow WebSocket upgrade headers along with all other headers
+    allow_headers=[
+        "*",
+        "upgrade",
+        "connection",
+        "sec-websocket-key",
+        "sec-websocket-version",
+        "sec-websocket-protocol",
+    ],
 )
 
 

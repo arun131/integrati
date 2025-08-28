@@ -16,11 +16,11 @@ export const NotificationProvider = ({ children }) => {
             loadNotifications();
             loadUnreadCount();
 
-            // Poll for new notifications and count every 10 seconds
+            // Poll for new notifications and count every 10 minutes
             const interval = setInterval(() => {
                 loadUnreadCount();
                 loadNotifications();
-            }, 10000);
+            }, 600000);
 
             return () => clearInterval(interval);
         }

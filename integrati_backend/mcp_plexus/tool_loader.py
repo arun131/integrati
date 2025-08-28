@@ -7,18 +7,6 @@ from typing import List
 logger = logging.getLogger(__name__)
 
 
-def load_tools_from_directory(directory_path: str) -> List[str]:
-    """
-    DEPRECATED: Use load_tools_from_integrations instead.
-
-    Load tools from a directory containing tool modules.
-    """
-    logger.warning(
-        "load_tools_from_directory is deprecated. Use load_tools_from_integrations instead."
-    )
-    return load_tools_from_integrations()
-
-
 async def load_tools_from_integrations() -> List[str]:
     """
     Load tools from the integrations directory.

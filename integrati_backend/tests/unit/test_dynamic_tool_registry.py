@@ -8,7 +8,7 @@ from mcp_plexus.dynamic_tool_registry import (
     get_dynamic_tool_registry,
     register_tool_with_tenant_check,
 )
-from mcp_plexus.oauth.unified_token_service import UnifiedOAuthTokenService
+from mcp_plexus.oauth.unified_token_service import TenantOAuthTokenService
 
 
 class TestDynamicToolRegistry:
@@ -22,7 +22,7 @@ class TestDynamicToolRegistry:
     @pytest.fixture
     def mock_unified_service(self):
         """Mock unified OAuth token service."""
-        service = AsyncMock(spec=UnifiedOAuthTokenService)
+        service = AsyncMock(spec=TenantOAuthTokenService)
         return service
 
     def test_initialization(self, registry):

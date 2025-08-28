@@ -31,7 +31,7 @@ integrati_backend/
 ### Prerequisites
 
 - **Docker & Docker Compose** (for containerized development)
-- **python 3.11 or above** (for local development):
+- **python 3.12 or above** (for local development):
 - **install uv for python package management**: `pip install uv`
 - **Redis** (for local development): included in the docker compose setup
 

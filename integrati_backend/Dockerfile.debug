@@ -1,5 +1,5 @@
-# Use Python 3.11 slim image
-FROM python:3.11-slim
+# Use Python 3.12 slim image
+FROM python:3.12-slim
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
@@ -41,7 +41,7 @@ RUN chmod +x /app/bootstrap_and_run.sh
 RUN chmod +x /app/setup_debug_tunnel.sh
 
 # Set Python path
-ENV PYTHONPATH="/usr/local/lib/python3.11/site-packages:$PYTHONPATH"
+ENV PYTHONPATH="/usr/local/lib/python3.12/site-packages:$PYTHONPATH"
 
 # Create data directory
 RUN mkdir -p /app/data

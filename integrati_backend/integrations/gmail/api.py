@@ -20,7 +20,7 @@ class GmailAPI:
         """Initialize Gmail API wrapper."""
         self.entity_id = entity_id
         self.user_id = user_id
-        self.auth = UnifiedGmailAuth(entity_id, user_id, prefer_tenant_level=True)
+        self.auth = UnifiedGmailAuth(entity_id, user_id)
         self.service = None
 
     async def _get_service(self):

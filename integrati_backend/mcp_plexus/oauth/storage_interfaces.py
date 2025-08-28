@@ -49,45 +49,6 @@ class AbstractAuthCodeStore(ABC):
         pass
 
 
-class AbstractUserExternalTokenStore(ABC):
-    """Abstract base class for storing OAuth tokens obtained from external providers."""
-
-    @abstractmethod
-    async def save_user_external_token(
-        self,
-        entity_id: str,
-        user_id: str,
-        provider_name: str,
-        token_data: Dict[str, Any],
-    ) -> None:
-        """Store external OAuth token data for a user."""
-        pass
-
-    @abstractmethod
-    async def load_user_external_token(
-        self, entity_id: str, user_id: str, provider_name: str
-    ) -> Optional[Dict[str, Any]]:
-        """Retrieve external OAuth token data for a user."""
-        pass
-
-    @abstractmethod
-    async def delete_user_external_token(
-        self, entity_id: str, user_id: str, provider_name: str
-    ) -> None:
-        """Remove external OAuth token data for a user."""
-        pass
-
-    @abstractmethod
-    async def initialize(self) -> None:
-        """Initialize the storage backend."""
-        pass
-
-    @abstractmethod
-    async def teardown(self) -> None:
-        """Clean up storage resources."""
-        pass
-
-
 class AbstractOAuthTokenStore(ABC):
     """Abstract base class for storing internal OAuth server tokens (access and refresh)."""
 

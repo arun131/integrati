@@ -279,8 +279,8 @@ async def process_chatbot_request(
 
             # 3. Categorize tools using smart categorization
             logger.info(f"Total MCP tools available: {len(mcp_tools)}")
-            for tool in mcp_tools:
-                logger.info(f"MCP tool: {tool.name} - {tool.description}")
+            # for tool in mcp_tools:
+            #     logger.info(f"MCP tool: {tool.name} - {tool.description}")
 
             categorized_tools = categorize_tools_smart(mcp_tools)
             logger.info(

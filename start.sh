@@ -41,6 +41,8 @@ if [ ! -f "docker-compose.yml" ]; then
     exit 1
 fi
 
+
+
 # Function to check if services are running
 check_services() {
     if docker compose ps | grep -q "Up"; then

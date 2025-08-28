@@ -472,7 +472,7 @@ class MCPPlexusServer:
             for integration_name in ["gmail", "calendar"]:
                 # Check for tenant-level tokens (prefer tenant-level)
                 token_data = await unified_service.get_oauth_tokens(
-                    entity_id, None, integration_name, prefer_tenant_level=True
+                    entity_id, None, integration_name
                 )
                 oauth_status[integration_name] = bool(
                     token_data and token_data.get("access_token")

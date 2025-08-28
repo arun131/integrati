@@ -30,13 +30,24 @@ export const NotificationProvider = ({ children }) => {
             loadNotifications();
             loadUnreadCount();
 
-            // Poll every 30 seconds when WebSocket is not available
+            // Poll every 10 minutes when WebSocket is not available
             const interval = setInterval(() => {
                 loadUnreadCount();
                 loadNotifications();
-            }, 30000);
+            }, 600000);
 
             return () => clearInterval(interval);
+        } else if (wsConnected) {
+            console.log('NotificationContext: WebSocket connected, stopping fallback polling');
+        }
+    }, [plexusToken, wsConnected]);
+
+    // Initial data load only when WebSocket is not connected
+    useEffect(() => {
+        if (!wsConnected && plexusToken) {
+            console.log('NotificationContext: Initial data load (WebSocket not connected)');
+            loadNotifications();
+            loadUnreadCount();
         }
     }, [plexusToken, wsConnected]);
 
@@ -81,21 +92,21 @@ export const NotificationProvider = ({ children }) => {
     const loadNotifications = async (includeRead = false) => {
         if (!plexusToken) return;
 
+        // Don't make API calls if WebSocket is connected
+        if (wsConnected) {
+            console.log('NotificationContext: WebSocket connected, skipping API call');
+            return;
+        }
+
         try {
             setLoading(true);
             const response = await notificationApi.getNotifications(20, includeRead);
             const fetchedNotifications = response.notifications || [];
             const fetchedUnreadCount = response.unread_count || 0;
 
-            if (wsConnected) {
-                // If WebSocket is connected, sync the fetched data with WebSocket state
-                setWsNotifications(fetchedNotifications);
-                setWsUnreadCount(fetchedUnreadCount);
-            } else {
-                // If WebSocket is not connected, use local state
-                setNotifications(fetchedNotifications);
-                setUnreadCount(fetchedUnreadCount);
-            }
+            // Use local state since WebSocket is not connected
+            setNotifications(fetchedNotifications);
+            setUnreadCount(fetchedUnreadCount);
 
             setLastPolled(new Date());
         } catch (error) {
@@ -108,15 +119,17 @@ export const NotificationProvider = ({ children }) => {
     const loadUnreadCount = async () => {
         if (!plexusToken) return;
 
+        // Don't make API calls if WebSocket is connected
+        if (wsConnected) {
+            console.log('NotificationContext: WebSocket connected, skipping API call');
+            return;
+        }
+
         try {
             const response = await notificationApi.getNotificationCount();
             const fetchedUnreadCount = response.unread_count || 0;
 
-            if (wsConnected) {
-                setWsUnreadCount(fetchedUnreadCount);
-            } else {
-                setUnreadCount(fetchedUnreadCount);
-            }
+            setUnreadCount(fetchedUnreadCount);
         } catch (error) {
             console.error('Error loading notification count:', error);
         }

@@ -1,33 +1,29 @@
 # Core web framework
-fastapi
-uvicorn[standard]
-websockets
+fastapi>=0.111.0
+uvicorn[standard]>=0.30.0
 
 # MCP and FastMCP
 fastmcp>=2.10.0
-mcp
+mcp>=1.12.0
 
 # Database and storage
-redis
-SQLAlchemy==2.0.32
-pydantic-settings
+redis>=6.2.0
+sqlalchemy>=2.0.32
+pydantic-settings>=2.10.0
 
 # Environment and configuration
-python-dotenv
+python-dotenv>=1.0.0
 
 # HTTP client
-httpx
+httpx>=0.28.0
 
 # CLI tools
-typer[all]
-
-# HTTP requests (legacy, but still used)
-requests
+typer>=0.16.0
 
 # Security and encryption
-cryptography
-python-jose[cryptography]
-passlib[bcrypt]
+cryptography>=45.0.0
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
 
 # Google services
 google-api-python-client==2.130.0
@@ -38,9 +34,11 @@ google-auth-httplib2==0.2.0
 firebase-admin==6.5.0
 
 # Async support
-anyio
+anyio>=4.9.0
+
+# WebSocket support
+websockets>=12.0
 
 # AI and DSPy - Latest version with Python 3.12+ support
 dspy-ai>=3.0.1
 openai>=1.0.0,<2.0.0
-litellm>=1.0.0,<2.0.0

@@ -22,6 +22,7 @@ services:
     build: ./integrati_backend
     ports:
       - "8000:8000"
+    command: ./bootstrap_and_run.sh
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379

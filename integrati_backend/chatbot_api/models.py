@@ -99,44 +99,6 @@ class StorageStatsResponse(BaseModel):
     error: Optional[str] = None
 
 
-# Legacy models for backward compatibility (can be removed later)
-class ChatbotRequest(BaseModel):
-    """Legacy request model - use ChatbotMessageRequest instead."""
-
-    tenant_id: str = Field(..., description="The tenant identifier")
-    user_id: str = Field(..., description="The user identifier")
-    message: str = Field(..., description="The user's message or query")
-    conversation_id: Optional[str] = Field(
-        None, description="Optional conversation ID for continuing a chat"
-    )
-    integrations: Optional[List[str]] = Field(
-        default=[], description="List of user's available integrations"
-    )
-
-
-class ConversationHistory(BaseModel):
-    """Legacy conversation history model - use ChatHistoryResponse instead."""
-
-    conversation_id: str = Field(
-        ..., description="Unique identifier for the conversation"
-    )
-    tenant_id: str = Field(..., description="The tenant identifier")
-    user_id: str = Field(..., description="The user identifier")
-    messages: List[Dict[str, Any]] = Field(
-        default=[], description="List of messages in the conversation"
-    )
-    created_at: datetime = Field(
-        default_factory=datetime.now, description="When the conversation was created"
-    )
-    updated_at: datetime = Field(
-        default_factory=datetime.now,
-        description="When the conversation was last updated",
-    )
-    integrations: List[str] = Field(
-        default=[], description="Integrations available during this conversation"
-    )
-
-
 class ChatbotStatus(BaseModel):
     """Status model for the chatbot system."""
 

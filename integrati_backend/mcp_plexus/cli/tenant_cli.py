@@ -1,5 +1,6 @@
 # mcp_plexus/cli/tenant_cli.py
 import typer
+import asyncio
 from typing import Optional
 from typing_extensions import Annotated  # For older Python compatibility
 import json
@@ -12,7 +13,7 @@ app = typer.Typer(
 
 
 @app.command("create")
-def create_tenant(
+async def create_tenant(
     entity_id: Annotated[
         str,
         typer.Option(
@@ -46,23 +47,23 @@ def create_tenant(
             )
             raise typer.Exit(code=1)
 
-    make_api_request(
+    await make_api_request(
         "POST", "/admin/tenants/", json_payload=payload, expected_status=201
     )
 
 
 @app.command("get")
-def get_tenant(
+async def get_tenant(
     entity_id: Annotated[
         str, typer.Argument(help="The Entity ID of the tenant to retrieve.")
     ],
 ):
     """Get details for a specific Plexus Tenant."""
-    make_api_request("GET", f"/admin/tenants/{entity_id}")
+    await make_api_request("GET", f"/admin/tenants/{entity_id}")
 
 
 @app.command("list")
-def list_tenants(
+async def list_tenants(
     skip: Annotated[
         int, typer.Option("--skip", help="Number of tenants to skip.", min=0)
     ] = 0,
@@ -75,11 +76,11 @@ def list_tenants(
 ):
     """List Plexus Tenants."""
     params = {"skip": skip, "limit": limit}
-    make_api_request("GET", "/admin/tenants/", params_payload=params)
+    await make_api_request("GET", "/admin/tenants/", params_payload=params)
 
 
 @app.command("update")
-def update_tenant(
+async def update_tenant(
     entity_id: Annotated[
         str, typer.Argument(help="The Entity ID of the tenant to update.")
     ],
@@ -120,17 +121,17 @@ def update_tenant(
         typer.echo("No update parameters provided. Nothing to do.")
         raise typer.Exit()
 
-    make_api_request("PUT", f"/admin/tenants/{entity_id}", json_payload=payload)
+    await make_api_request("PUT", f"/admin/tenants/{entity_id}", json_payload=payload)
 
 
 @app.command("delete")
-def delete_tenant(
+async def delete_tenant(
     entity_id: Annotated[
         str, typer.Argument(help="The Entity ID of the tenant to delete.")
     ],
 ):
     """Delete a Plexus Tenant."""
-    make_api_request(
+    await make_api_request(
         "DELETE",
         f"/admin/tenants/{entity_id}",
         expected_status=204,
@@ -139,4 +140,4 @@ def delete_tenant(
 
 
 if __name__ == "__main__":
-    app()
+    asyncio.run(app())

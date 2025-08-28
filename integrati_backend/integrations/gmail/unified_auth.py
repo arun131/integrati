@@ -31,7 +31,6 @@ class UnifiedGmailAuth:
         self,
         entity_id: str,
         user_id: str,
-        prefer_tenant_level: bool = True,
         use_tenant_storage: bool = True,
     ):
         """
@@ -40,12 +39,10 @@ class UnifiedGmailAuth:
         Args:
             entity_id: The tenant's entity ID
             user_id: The user/config ID within the tenant
-            prefer_tenant_level: If True, prefer tenant-level tokens when reading
             use_tenant_storage: If True, save new tokens to tenant-level storage
         """
         self.entity_id = entity_id
         self.user_id = user_id
-        self.prefer_tenant_level = prefer_tenant_level
         self.use_tenant_storage = use_tenant_storage
         self.config = GmailOAuthConfig()
         self._unified_service = None
@@ -67,7 +64,6 @@ class UnifiedGmailAuth:
             self.entity_id,
             self.user_id,
             "gmail",
-            prefer_tenant_level=self.prefer_tenant_level,
         )
 
     async def store_tokens(self, tokens: Dict[str, Any]) -> None:
@@ -80,7 +76,6 @@ class UnifiedGmailAuth:
             self.user_id,
             "gmail",
             tokens,
-            use_tenant_level=self.use_tenant_storage,
         )
         if not success:
             raise Exception("Failed to store Gmail tokens")
@@ -344,37 +339,20 @@ class UnifiedGmailAuth:
             self.entity_id,
             self.user_id,
             "gmail",
-            delete_tenant_level=True,
-            delete_user_level=True,  # Clean up both for complete removal
         )
 
     async def migrate_to_tenant_storage(self) -> bool:
         """
-        Migrate existing user-level tokens to tenant-level storage.
+        Migration is no longer needed - all tokens are now stored at tenant level.
 
-        This is useful during the transition period to move existing
-        user tokens to the new tenant-level architecture.
+        Returns:
+            True (always successful since no migration is needed)
         """
-        service = await self.get_unified_service()
-        return await service.migrate_user_tokens_to_tenant(
-            self.entity_id, self.user_id, "gmail"
-        )
+        logger.info("Migration not needed - Gmail tokens are already at tenant level")
+        return True
 
 
-# Factory functions for backward compatibility and easy instantiation
-
-
-async def create_gmail_auth_legacy(entity_id: str, user_id: str) -> UnifiedGmailAuth:
-    """
-    Create Gmail auth instance using legacy user-level tokens.
-    For backward compatibility with existing code.
-    """
-    return UnifiedGmailAuth(
-        entity_id=entity_id,
-        user_id=user_id,
-        prefer_tenant_level=False,
-        use_tenant_storage=False,
-    )
+# Factory functions for easy instantiation
 
 
 async def create_gmail_auth_tenant_level(
@@ -387,7 +365,6 @@ async def create_gmail_auth_tenant_level(
     return UnifiedGmailAuth(
         entity_id=entity_id,
         user_id=user_id,
-        prefer_tenant_level=True,
         use_tenant_storage=True,
     )
 
@@ -400,6 +377,5 @@ async def create_gmail_auth_unified(entity_id: str, user_id: str) -> UnifiedGmai
     return UnifiedGmailAuth(
         entity_id=entity_id,
         user_id=user_id,
-        prefer_tenant_level=True,
         use_tenant_storage=True,
     )
