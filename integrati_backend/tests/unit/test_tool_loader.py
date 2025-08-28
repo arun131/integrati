@@ -6,7 +6,6 @@ from unittest.mock import patch, MagicMock
 # Try to import the functions to test, but handle import errors gracefully
 try:
     from mcp_plexus.tool_loader import (
-        load_tools_from_directory,
         load_tools_from_integrations,
         register_dynamic_tools_for_tenant,
         load_tools_for_user,
@@ -16,7 +15,6 @@ try:
 except ImportError as e:
     print(f"Warning: Could not import mcp_plexus.tool_loader: {e}")
     TOOL_LOADER_AVAILABLE = False
-    load_tools_from_directory = None
     load_tools_from_integrations = None
     register_dynamic_tools_for_tenant = None
     load_tools_for_user = None
@@ -29,16 +27,6 @@ class TestToolLoader:
         """Set up test method - skip if tool loader not available."""
         if not TOOL_LOADER_AVAILABLE:
             pytest.skip("Tool loader not available due to import errors")
-
-    @patch("mcp_plexus.tool_loader.logger")
-    def test_load_tools_from_directory_deprecated_warning(self, mock_logger):
-        """Test that load_tools_from_directory shows deprecation warning."""
-        load_tools_from_directory("some/path")
-
-        # Verify warning was logged
-        mock_logger.warning.assert_called_with(
-            "load_tools_from_directory is deprecated. Use load_tools_from_integrations instead."
-        )
 
     @pytest.mark.asyncio
     @patch("mcp_plexus.tool_loader.Path")

@@ -361,20 +361,7 @@ class UnifiedGmailAuth:
         )
 
 
-# Factory functions for backward compatibility and easy instantiation
-
-
-async def create_gmail_auth_legacy(entity_id: str, user_id: str) -> UnifiedGmailAuth:
-    """
-    Create Gmail auth instance using legacy user-level tokens.
-    For backward compatibility with existing code.
-    """
-    return UnifiedGmailAuth(
-        entity_id=entity_id,
-        user_id=user_id,
-        prefer_tenant_level=False,
-        use_tenant_storage=False,
-    )
+# Factory functions for easy instantiation
 
 
 async def create_gmail_auth_tenant_level(

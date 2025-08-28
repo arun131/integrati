@@ -363,15 +363,6 @@ class UnifiedCalendarAuth:
 
 
 # Factory functions for different authentication modes
-async def create_calendar_auth_legacy(
-    entity_id: str, user_id: str
-) -> UnifiedCalendarAuth:
-    """Create Calendar auth with legacy user-level storage preference."""
-    return UnifiedCalendarAuth(
-        entity_id, user_id, prefer_tenant_level=False, use_tenant_storage=False
-    )
-
-
 async def create_calendar_auth_tenant_level(
     entity_id: str, user_id: str
 ) -> UnifiedCalendarAuth:

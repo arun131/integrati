@@ -10,7 +10,6 @@ from chatbot_api.models import (
     ChatHistoryResponse,
     UserChatsResponse,
     StorageStatsResponse,
-    ConversationHistory,
 )
 
 
@@ -381,66 +380,6 @@ class TestStorageStatsResponse:
         assert response.success is False
         assert response.error == "Failed to retrieve stats"
         assert response.stats is None
-
-
-class TestConversationHistory:
-    """Test ConversationHistory model."""
-
-    def test_conversation_history_valid(self):
-        """Test valid ConversationHistory creation."""
-        history = ConversationHistory(
-            conversation_id="conv_123",
-            tenant_id="test_tenant",
-            user_id="test_user@example.com",
-            messages=[
-                {"message": "Hello", "timestamp": "2024-01-01T10:00:00"},
-                {"message": "Hi there", "timestamp": "2024-01-01T11:00:00"},
-            ],
-            integrations=["gmail", "calendar"],
-        )
-
-        assert history.conversation_id == "conv_123"
-        assert history.tenant_id == "test_tenant"
-        assert history.user_id == "test_user@example.com"
-        assert len(history.messages) == 2
-        assert history.integrations == ["gmail", "calendar"]
-
-    def test_conversation_history_empty_messages(self):
-        """Test ConversationHistory with empty messages."""
-        history = ConversationHistory(
-            conversation_id="conv_123",
-            tenant_id="test_tenant",
-            user_id="test_user@example.com",
-            messages=[],
-            integrations=["gmail"],
-        )
-
-        assert history.messages == []
-
-    def test_conversation_history_no_integrations(self):
-        """Test ConversationHistory with no integrations."""
-        history = ConversationHistory(
-            conversation_id="conv_123",
-            tenant_id="test_tenant",
-            user_id="test_user@example.com",
-            messages=[],
-            integrations=[],
-        )
-
-        assert history.integrations == []
-
-    def test_conversation_history_missing_required_fields(self):
-        """Test ConversationHistory with missing required fields."""
-        with pytest.raises(ValidationError) as exc_info:
-            ConversationHistory(
-                conversation_id="conv_123",
-                # Missing tenant_id
-                user_id="test_user@example.com",
-                messages=[],
-                integrations=["gmail"],
-            )
-
-        assert "tenant_id" in str(exc_info.value)
 
 
 class TestModelValidation:
