@@ -29,7 +29,8 @@ export const WebSocketProvider = ({ children }) => {
 
         const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
         const host = window.location.hostname;
-        const port = process.env.NODE_ENV === 'development' ? '8000' : window.location.port;
+        // Always use backend port for WebSocket connections
+        const port = '8000';
         const baseUrl = `${protocol}//${host}:${port}`;
 
         return `${baseUrl}/api/events/ws/${tenantId}?token=${encodeURIComponent(plexusToken)}`;
@@ -91,6 +92,12 @@ export const WebSocketProvider = ({ children }) => {
 
             ws.onclose = (event) => {
                 console.log('WebSocket: Connection closed', event.code, event.reason);
+                console.log('WebSocket: Close details:', {
+                    code: event.code,
+                    reason: event.reason,
+                    wasClean: event.wasClean,
+                    target: event.target
+                });
                 setIsConnected(false);
                 setConnectionState('disconnected');
                 wsRef.current = null;
@@ -112,6 +119,12 @@ export const WebSocketProvider = ({ children }) => {
 
             ws.onerror = (error) => {
                 console.error('WebSocket: Connection error:', error);
+                console.error('WebSocket: Error details:', {
+                    readyState: ws.readyState,
+                    url: ws.url,
+                    protocol: ws.protocol,
+                    extensions: ws.extensions
+                });
                 setLastError('Connection failed');
                 setConnectionState('error');
 

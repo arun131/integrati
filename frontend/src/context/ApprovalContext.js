@@ -98,13 +98,13 @@ export const ApprovalProvider = ({ children }) => {
         }
     }, [plexusToken, loadPendingApprovals, loadApprovalHistory]);
 
-    // Set up polling for new approvals (every 10 seconds when user is active)
+    // Set up polling for new approvals (every 10 minutes when user is active)
     useEffect(() => {
         if (!plexusToken) return;
 
         const interval = setInterval(() => {
             loadPendingApprovals();
-        }, 10000); // Poll every 10 seconds
+        }, 600000); // Poll every 10 minutes
 
         return () => clearInterval(interval);
     }, [plexusToken, loadPendingApprovals]);

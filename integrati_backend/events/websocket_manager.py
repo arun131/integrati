@@ -98,7 +98,12 @@ class WebSocketManager:
         Returns:
             WebSocketConnection: The registered connection object
         """
-        await websocket.accept()
+        try:
+            await websocket.accept()
+            logger.info(f"WebSocket accepted for tenant: {tenant_id}, user: {user_id}")
+        except Exception as e:
+            logger.error(f"Failed to accept WebSocket connection: {e}")
+            raise
 
         connection_id = str(uuid.uuid4())
         connection = WebSocketConnection(

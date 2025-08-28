@@ -79,12 +79,17 @@ async def websocket_endpoint(
         tenant_id: Tenant identifier
         token: Authentication token (required)
     """
+    logger.info(f"WebSocket connection attempt for tenant: {tenant_id}")
+    logger.info(f"WebSocket headers: {websocket.headers}")
+    logger.info(f"WebSocket query params: token={'***' if token else 'None'}")
+
     connection = None
 
     try:
         # Authenticate user
         user_data = await authenticate_websocket_user(tenant_id, token)
         if not user_data:
+            logger.warning(f"WebSocket authentication failed for tenant: {tenant_id}")
             await websocket.close(code=4001, reason="Authentication required")
             return
 

@@ -27,8 +27,7 @@ dependencies = [
     # HTTP client
     "httpx>=0.28.0",
     # CLI tools
-    "typer[all]>=0.16.0",
-    # HTTP requests (migrated to httpx)
+    "typer>=0.16.0",
     # Security and encryption
     "cryptography>=45.0.0",
     "python-jose[cryptography]==3.3.0",
@@ -44,7 +43,6 @@ dependencies = [
     # AI and DSPy - Latest version with Python 3.12+ support
     "dspy-ai>=3.0.1",
     "openai>=1.0.0,<2.0.0",
-    "litellm>=1.0.0,<2.0.0",
 ]
 
 [project.scripts]

@@ -27,28 +27,20 @@ export const ApprovalProvider = ({ children }) => {
     const loadPendingApprovals = useCallback(async () => {
         if (!plexusToken) return;
 
+        // Don't make API calls if WebSocket is connected
+        if (wsConnected) {
+            console.log('ApprovalContext: WebSocket connected, skipping API call');
+            return;
+        }
+
         try {
             setLoading(true);
             setError(null);
             const response = await approvalApi.getPendingApprovals();
             const fetchedApprovals = response.pending_approvals || [];
 
-            if (wsConnected) {
-                // Sync with WebSocket state - filter only pending ones
-                const pendingWsApprovals = wsApprovals.filter(a => a.status === 'pending');
-                setPendingApprovals(pendingWsApprovals);
-
-                // Merge fetched approvals with WebSocket approvals to ensure we have complete data
-                const mergedApprovals = [...fetchedApprovals];
-                wsApprovals.forEach(wsApproval => {
-                    if (!mergedApprovals.some(a => a.approval_id === wsApproval.approval_id)) {
-                        mergedApprovals.push(wsApproval);
-                    }
-                });
-                setWsApprovals(mergedApprovals);
-            } else {
-                setPendingApprovals(fetchedApprovals);
-            }
+            // Use local state since WebSocket is not connected
+            setPendingApprovals(fetchedApprovals);
 
             setLastPolled(new Date());
         } catch (err) {
@@ -57,11 +49,17 @@ export const ApprovalProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [plexusToken, wsConnected, wsApprovals, setWsApprovals]);
+    }, [plexusToken, wsConnected]);
 
     // Function to load approval history
     const loadApprovalHistory = useCallback(async () => {
         if (!plexusToken) return;
+
+        // Don't make API calls if WebSocket is connected
+        if (wsConnected) {
+            console.log('ApprovalContext: WebSocket connected, skipping API call');
+            return;
+        }
 
         try {
             setLoading(true);
@@ -74,7 +72,7 @@ export const ApprovalProvider = ({ children }) => {
         } finally {
             setLoading(false);
         }
-    }, [plexusToken]);
+    }, [plexusToken, wsConnected]);
 
     // Sync with WebSocket data when connected
     useEffect(() => {
@@ -116,22 +114,34 @@ export const ApprovalProvider = ({ children }) => {
             console.log('ApprovalContext: WebSocket not connected, using polling fallback');
             loadPendingApprovals();
 
-            // Poll every 30 seconds when WebSocket is not available
+            // Poll every 10 minutes when WebSocket is not available
             const interval = setInterval(() => {
                 loadPendingApprovals();
-            }, 30000);
+            }, 600000);
 
             return () => clearInterval(interval);
+        } else if (wsConnected) {
+            console.log('ApprovalContext: WebSocket connected, stopping fallback polling');
         }
     }, [plexusToken, wsConnected, loadPendingApprovals]);
 
-    // Load data when token is available
+    // Initial data load only when WebSocket is not connected
     useEffect(() => {
-        if (plexusToken) {
+        if (!wsConnected && plexusToken) {
+            console.log('ApprovalContext: Initial data load (WebSocket not connected)');
             loadPendingApprovals();
             loadApprovalHistory();
         }
-    }, [plexusToken, loadPendingApprovals, loadApprovalHistory]);
+    }, [plexusToken, wsConnected, loadPendingApprovals, loadApprovalHistory]);
+
+    // Load data when token is available (only if WebSocket not connected)
+    useEffect(() => {
+        if (plexusToken && !wsConnected) {
+            console.log('ApprovalContext: Token available, loading data (WebSocket not connected)');
+            loadPendingApprovals();
+            loadApprovalHistory();
+        }
+    }, [plexusToken, wsConnected, loadPendingApprovals, loadApprovalHistory]);
 
     // Function to approve a request
     const approveRequest = async (approvalId, reason = '') => {

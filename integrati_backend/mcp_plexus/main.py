@@ -959,7 +959,15 @@ app.add_middleware(
     ],
     allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allow_headers=["*"],
+    # Allow WebSocket upgrade headers along with all other headers
+    allow_headers=[
+        "*",
+        "upgrade",
+        "connection",
+        "sec-websocket-key",
+        "sec-websocket-version",
+        "sec-websocket-protocol",
+    ],
 )
 
 
