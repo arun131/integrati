@@ -21,8 +21,7 @@ httpx
 # CLI tools
 typer[all]
 
-# HTTP requests (legacy, but still used)
-requests
+# HTTP requests (migrated to httpx)
 
 # Security and encryption
 cryptography

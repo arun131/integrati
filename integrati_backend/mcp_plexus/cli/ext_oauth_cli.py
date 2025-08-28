@@ -1,5 +1,6 @@
 # mcp_plexus/cli/ext_oauth_cli.py
 import typer
+import asyncio
 from typing import Optional
 from typing_extensions import Annotated
 
@@ -14,7 +15,7 @@ app = typer.Typer(
 
 
 @app.command("create")
-def create_ext_oauth_provider(
+async def create_ext_oauth_provider(
     entity_id: Annotated[
         str, typer.Argument(help="The Entity ID for which to register this provider.")
     ],
@@ -85,7 +86,7 @@ def create_ext_oauth_provider(
         )
         raise typer.Exit(code=1)
 
-    make_api_request(
+    await make_api_request(
         "POST",
         f"/{entity_id}/admin/external-oauth-providers/",
         json_payload=payload,
@@ -94,31 +95,31 @@ def create_ext_oauth_provider(
 
 
 @app.command("get")
-def get_ext_oauth_provider(
+async def get_ext_oauth_provider(
     entity_id: Annotated[str, typer.Argument(help="The Entity ID.")],
     provider_name: Annotated[
         str, typer.Argument(help="The name of the provider configuration to retrieve.")
     ],
 ):
     """Get a specific External OAuth Provider configuration for a Tenant."""
-    make_api_request(
+    await make_api_request(
         "GET", f"/{entity_id}/admin/external-oauth-providers/{provider_name}"
     )
 
 
 @app.command("list")
-def list_ext_oauth_providers(
+async def list_ext_oauth_providers(
     entity_id: Annotated[
         str,
         typer.Argument(help="The Entity ID for which to list provider configurations."),
     ],
 ):
     """List all External OAuth Provider configurations for a Tenant."""
-    make_api_request("GET", f"/{entity_id}/admin/external-oauth-providers/")
+    await make_api_request("GET", f"/{entity_id}/admin/external-oauth-providers/")
 
 
 @app.command("update")
-def update_ext_oauth_provider(
+async def update_ext_oauth_provider(
     entity_id: Annotated[str, typer.Argument(help="The Entity ID.")],
     provider_name_path: Annotated[
         str, typer.Argument(help="Name of the provider config to update.")
@@ -169,13 +170,14 @@ def update_ext_oauth_provider(
     # Provider name in request body must match the path parameter
     final_payload["provider_name"] = provider_name_path
 
-    # Collect all required fields, prompting for missing ones
+    # Handle client_id
     if client_id is not None:
         final_payload["client_id"] = client_id
     else:
         client_id_prompt = typer.prompt(f"Client ID for {provider_name_path}")
         final_payload["client_id"] = client_id_prompt
 
+    # Handle client_secret
     if client_secret is not None:
         final_payload["client_secret"] = client_secret
     else:
@@ -237,7 +239,7 @@ def update_ext_oauth_provider(
         )
         raise typer.Exit(code=1)
 
-    make_api_request(
+    await make_api_request(
         "PUT",
         f"/{entity_id}/admin/external-oauth-providers/{provider_name_path}",
         json_payload=final_payload,
@@ -245,7 +247,7 @@ def update_ext_oauth_provider(
 
 
 @app.command("delete")
-def delete_ext_oauth_provider(
+async def delete_ext_oauth_provider(
     entity_id: Annotated[str, typer.Argument(help="The Entity ID.")],
     provider_name: Annotated[
         str, typer.Argument(help="The name of the provider configuration to delete.")
@@ -265,7 +267,7 @@ def delete_ext_oauth_provider(
         typer.echo("Deletion cancelled.")
         raise typer.Abort()
 
-    make_api_request(
+    await make_api_request(
         "DELETE",
         f"/{entity_id}/admin/external-oauth-providers/{provider_name}",
         expected_status=204,
@@ -278,4 +280,4 @@ def delete_ext_oauth_provider(
 
 
 if __name__ == "__main__":
-    app()
+    asyncio.run(app())

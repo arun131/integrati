@@ -1,5 +1,6 @@
 # mcp_plexus/cli/main_cli.py
 import typer
+import asyncio
 from . import admin_cli
 
 # Main CLI application with help enabled when no arguments are provided
@@ -22,7 +23,7 @@ def main_callback():
 
 def cli_entry_point():
     """Entry point function for console script registration in pyproject.toml"""
-    app()
+    asyncio.run(app())
 
 
 if __name__ == "__main__":

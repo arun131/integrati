@@ -1,5 +1,5 @@
 # mcp_plexus/cli/utils_cli.py
-import requests
+import httpx
 import typer
 import json
 from typing import Optional, Dict, Any, Union, List
@@ -7,7 +7,7 @@ from typing import Optional, Dict, Any, Union, List
 from .config import PLEXUS_CLI_API_BASE_URL
 
 
-def make_api_request(
+async def make_api_request(
     method: str,
     endpoint: str,
     json_payload: Optional[Dict[str, Any]] = None,
@@ -52,14 +52,15 @@ def make_api_request(
         typer.echo(f"CLI: Headers: {log_headers}")
 
     try:
-        response = requests.request(
-            method,
-            full_url,
-            json=json_payload,
-            params=params_payload,
-            headers=headers,
-            timeout=30,
-        )
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.request(
+                method,
+                full_url,
+                json=json_payload,
+                params=params_payload,
+                headers=headers,
+            )
+
         typer.echo(f"CLI: Response Status: {response.status_code}")
 
         # Normalize expected status to list for consistent checking
@@ -110,12 +111,12 @@ def make_api_request(
             typer.secho(err_msg, fg=typer.colors.RED)
             raise typer.Exit(code=1)
 
-    except requests.exceptions.ConnectionError as e:
+    except httpx.ConnectError as e:
         typer.secho(
             f"CLI: Connection Error - Could not connect to API at {full_url}. Is the server running? Error: {e}",
             fg=typer.colors.RED,
         )
         raise typer.Exit(code=1)
-    except requests.exceptions.RequestException as e:
+    except httpx.RequestError as e:
         typer.secho(f"CLI: Request Error - {e}", fg=typer.colors.RED)
         raise typer.Exit(code=1)
