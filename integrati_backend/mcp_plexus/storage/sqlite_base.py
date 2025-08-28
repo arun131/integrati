@@ -80,18 +80,6 @@ async def init_sqlite_db(conn: Optional[sqlite3.Connection] = None):
     """)
     logger.info("Ensured 'plexus_user_auth_tokens' table exists.")
 
-    # User-specific OAuth tokens from external providers (legacy table)
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS user_external_oauth_tokens (
-        entity_id TEXT NOT NULL,
-        user_id TEXT NOT NULL,
-        provider_name TEXT NOT NULL,
-        token_data TEXT NOT NULL,
-        PRIMARY KEY (entity_id, user_id, provider_name)
-    )
-    """)
-    logger.info("Ensured 'user_external_oauth_tokens' table exists.")
-
     # NEW: Tenant-level OAuth tokens (shared across all configs within a tenant)
     cursor.execute("""
     CREATE TABLE IF NOT EXISTS tenant_external_oauth_tokens (

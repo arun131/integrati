@@ -7,16 +7,14 @@ from .storage_interfaces import (
     AbstractOAuthTokenStore,
     AbstractExternalOAuthProviderConfigStore,
     AbstractOAuthClientStore,
-    AbstractUserExternalTokenStore,
 )
 
 # Import storage implementations
 from .storage import (
-    get_oauth_token_store,
-    get_auth_code_store,
+    get_internal_oauth_token_store,
+    get_internal_auth_code_store,
     get_external_oauth_provider_config_store,
     get_internal_oauth_client_store,
-    get_user_external_token_store,
 )
 
 # Import OAuth models
@@ -54,13 +52,11 @@ __all__ = [
     "AbstractOAuthTokenStore",
     "AbstractExternalOAuthProviderConfigStore",
     "AbstractOAuthClientStore",
-    "AbstractUserExternalTokenStore",
     # Storage functions
-    "get_oauth_token_store",
-    "get_auth_code_store",
+    "get_internal_oauth_token_store",
+    "get_internal_auth_code_store",
     "get_external_oauth_provider_config_store",
     "get_internal_oauth_client_store",
-    "get_user_external_token_store",
     # Models
     "AuthCodeData",
     "AccessTokenData",

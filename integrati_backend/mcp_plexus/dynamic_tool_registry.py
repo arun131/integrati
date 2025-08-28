@@ -54,7 +54,7 @@ class DynamicToolRegistry:
 
             for integration_name in ["gmail", "calendar"]:
                 token_data = await unified_service.get_oauth_tokens(
-                    entity_id, user_id, integration_name, prefer_tenant_level=True
+                    entity_id, user_id, integration_name
                 )
                 if token_data:
                     connected_integrations.append(integration_name)

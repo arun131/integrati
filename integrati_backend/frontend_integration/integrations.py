@@ -53,7 +53,7 @@ async def list_user_integrations(
         for integration_name in ["gmail", "calendar"]:
             # Check for tokens using unified service (tries tenant-level first, then user-level)
             token_data = await unified_service.get_oauth_tokens(
-                entity_id, user_id, integration_name, prefer_tenant_level=True
+                entity_id, user_id, integration_name
             )
 
             if token_data:
@@ -212,7 +212,7 @@ async def disconnect_integration(
 
         # Check what tokens exist
         token_data = await unified_service.get_oauth_tokens(
-            entity_id, user_id, integration_name, prefer_tenant_level=True
+            entity_id, user_id, integration_name
         )
 
         if not token_data:
@@ -236,13 +236,11 @@ async def disconnect_integration(
             except Exception as e:
                 logger.warning(f"Failed to revoke {integration_name} tokens: {e}")
 
-        # Remove tokens from both storages to ensure complete cleanup
+        # Remove tokens from storage
         success = await unified_service.delete_oauth_tokens(
             entity_id,
             user_id,
             integration_name,
-            delete_tenant_level=True,
-            delete_user_level=True,
         )
 
         if success:
@@ -298,7 +296,7 @@ async def get_integration_status(
             f"Checking for tokens for entity: {entity_id}, user: {user_id}, integration: {integration_name}"
         )
         token_data = await unified_service.get_oauth_tokens(
-            entity_id, user_id, integration_name, prefer_tenant_level=True
+            entity_id, user_id, integration_name
         )
         logger.info(f"Token data retrieved: {token_data is not None}")
 
@@ -381,30 +379,14 @@ async def migrate_integration_to_tenant_level(
         if integration_name not in ["gmail", "calendar"]:
             raise HTTPException(status_code=400, detail="Invalid integration name")
 
-        # Get unified token service
-        unified_service = await get_unified_oauth_token_service()
-
-        # Attempt migration
-        success = await unified_service.migrate_user_tokens_to_tenant(
-            entity_id, user_id, integration_name
-        )
-
-        if success:
-            return {
-                "message": f"{integration_name} tokens migrated to tenant-level storage",
-                "integration": integration_name,
-                "entity_id": entity_id,
-                "user_id": user_id,
-                "migration": "completed",
-            }
-        else:
-            return {
-                "message": f"No user-level tokens found for {integration_name} to migrate",
-                "integration": integration_name,
-                "entity_id": entity_id,
-                "user_id": user_id,
-                "migration": "not_needed",
-            }
+        # Migration is no longer needed - all tokens are now stored at tenant level
+        return {
+            "message": f"{integration_name} is already using tenant-level storage",
+            "integration": integration_name,
+            "entity_id": entity_id,
+            "user_id": user_id,
+            "migration": "not_needed",
+        }
 
     except Exception as e:
         logger.error(f"Error migrating {integration_name} tokens: {e}")

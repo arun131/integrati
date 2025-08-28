@@ -188,9 +188,7 @@ class CalendarWatcher(BaseIntegrationWatcher):
                 pass
 
         try:
-            auth = UnifiedCalendarAuth(
-                key.entity_id, key.identity_key, prefer_tenant_level=True
-            )
+            auth = UnifiedCalendarAuth(key.entity_id, key.identity_key)
             credentials = await auth.get_valid_credentials()
             service = build("calendar", "v3", credentials=credentials)
         except Exception as auth_error:

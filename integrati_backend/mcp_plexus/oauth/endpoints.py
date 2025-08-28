@@ -15,19 +15,16 @@ from .provider import OAuthProvider
 from .models import AuthRequest, TokenRequest, TokenResponse, WellKnownOAuthMetadata
 from .errors import OAuthError, InvalidRequestError, ServerError
 from .storage import (
-    get_oauth_token_store,
-    get_auth_code_store,
+    get_internal_oauth_token_store,
+    get_internal_auth_code_store,
     get_external_oauth_provider_config_store,
     get_internal_oauth_client_store,
 )
 from .storage_interfaces import (
     AbstractExternalOAuthProviderConfigStore,
-    AbstractUserExternalTokenStore,
 )
-from .user_token_store import get_user_external_token_store
 
 if TYPE_CHECKING:
-    from .storage_interfaces import AbstractUserExternalTokenStore
     from ..sessions import PlexusSessionManager
 
 logger = logging.getLogger(__name__)
@@ -68,8 +65,8 @@ async def get_httpx_async_client() -> httpx.AsyncClient:
 
 async def get_oauth_provider() -> OAuthProvider:
     """Create a configured OAuth provider with necessary stores."""
-    token_store = await get_oauth_token_store()
-    auth_code_store = await get_auth_code_store()
+    token_store = await get_internal_oauth_token_store()
+    auth_code_store = await get_internal_auth_code_store()
     client_store = await get_internal_oauth_client_store()
     return OAuthProvider(
         token_store=token_store,
@@ -477,9 +474,6 @@ async def external_oauth_callback(
         AbstractExternalOAuthProviderConfigStore,
         Depends(get_external_oauth_provider_config_store),
     ],
-    user_token_store: Annotated[
-        AbstractUserExternalTokenStore, Depends(get_user_external_token_store)
-    ],
     http_client: Annotated[httpx.AsyncClient, Depends(get_httpx_async_client)],
     error: Annotated[Optional[str], Query()] = None,
     error_description: Annotated[Optional[str], Query()] = None,
@@ -697,14 +691,15 @@ async def external_oauth_callback(
             session_data.oauth_tokens = {}
         session_data.oauth_tokens[provider_name] = user_token_bundle.copy()
 
-        # Persist tokens for authenticated users
-        if session_data.persistent_user_id:
-            await user_token_store.save_user_external_token(
-                entity_id,
-                session_data.persistent_user_id,
-                provider_name,
-                user_token_bundle,
-            )
+        # Persist tokens at tenant level
+        from .storage import get_tenant_external_token_store
+
+        tenant_token_store = await get_tenant_external_token_store()
+        await tenant_token_store.save_tenant_external_token(
+            entity_id,
+            provider_name,
+            user_token_bundle,
+        )
 
         # Clean up temporary OAuth state data
         if session_data.plexus_internal_data:

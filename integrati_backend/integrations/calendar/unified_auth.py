@@ -31,7 +31,6 @@ class UnifiedCalendarAuth:
         self,
         entity_id: str,
         user_id: str,
-        prefer_tenant_level: bool = True,
         use_tenant_storage: bool = True,
     ):
         """
@@ -40,12 +39,10 @@ class UnifiedCalendarAuth:
         Args:
             entity_id: The tenant's entity ID
             user_id: The user/config ID within the tenant
-            prefer_tenant_level: If True, prefer tenant-level tokens when reading
             use_tenant_storage: If True, save new tokens to tenant-level storage
         """
         self.entity_id = entity_id
         self.user_id = user_id
-        self.prefer_tenant_level = prefer_tenant_level
         self.use_tenant_storage = use_tenant_storage
         self.config = CalendarOAuthConfig()
         self._unified_service = None
@@ -67,7 +64,6 @@ class UnifiedCalendarAuth:
             self.entity_id,
             self.user_id,
             "calendar",
-            prefer_tenant_level=self.prefer_tenant_level,
         )
 
     async def store_tokens(self, tokens: Dict[str, Any]) -> None:
@@ -80,7 +76,6 @@ class UnifiedCalendarAuth:
             self.user_id,
             "calendar",
             tokens,
-            use_tenant_level=self.use_tenant_storage,
         )
         if not success:
             raise Exception("Failed to store Calendar tokens")
@@ -341,25 +336,19 @@ class UnifiedCalendarAuth:
             self.entity_id,
             self.user_id,
             "calendar",
-            delete_tenant_level=True,
-            delete_user_level=True,
         )
 
     async def migrate_to_tenant_storage(self) -> bool:
         """
-        Migrate user-level tokens to tenant-level storage.
+        Migration is no longer needed - all tokens are now stored at tenant level.
 
         Returns:
-            True if migration was successful, False otherwise
+            True (always successful since no migration is needed)
         """
-        try:
-            service = await self.get_unified_service()
-            return await service.migrate_user_tokens_to_tenant(
-                self.entity_id, self.user_id, "calendar"
-            )
-        except Exception as e:
-            logger.error(f"Error migrating Calendar tokens: {e}")
-            return False
+        logger.info(
+            "Migration not needed - Calendar tokens are already at tenant level"
+        )
+        return True
 
 
 # Factory functions for different authentication modes
@@ -367,15 +356,11 @@ async def create_calendar_auth_tenant_level(
     entity_id: str, user_id: str
 ) -> UnifiedCalendarAuth:
     """Create Calendar auth with tenant-level storage preference."""
-    return UnifiedCalendarAuth(
-        entity_id, user_id, prefer_tenant_level=True, use_tenant_storage=True
-    )
+    return UnifiedCalendarAuth(entity_id, user_id, use_tenant_storage=True)
 
 
 async def create_calendar_auth_unified(
     entity_id: str, user_id: str
 ) -> UnifiedCalendarAuth:
     """Create Calendar auth with unified storage (prefers tenant-level, falls back to user-level)."""
-    return UnifiedCalendarAuth(
-        entity_id, user_id, prefer_tenant_level=True, use_tenant_storage=True
-    )
+    return UnifiedCalendarAuth(entity_id, user_id, use_tenant_storage=True)

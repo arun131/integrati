@@ -303,7 +303,6 @@ class PlexusContext(FastMCPContext):
         Returns the new token data if successful, None otherwise.
         """
         from mcp_plexus.main import (
-            user_external_token_store_instance,
             plexus_session_manager_instance,
         )
 
@@ -398,11 +397,13 @@ class PlexusContext(FastMCPContext):
                 if plexus_session_manager_instance:
                     await plexus_session_manager_instance.save_session(session_data)
 
-                # Save to persistent store if available
-                if persistent_user_id and user_external_token_store_instance:
-                    await user_external_token_store_instance.save_user_external_token(
-                        entity_id, persistent_user_id, provider_name, updated_bundle
-                    )
+                # Save to tenant-level store
+                from mcp_plexus.oauth.storage import get_tenant_external_token_store
+
+                tenant_token_store = await get_tenant_external_token_store()
+                await tenant_token_store.save_tenant_external_token(
+                    entity_id, provider_name, updated_bundle
+                )
                 logger.info(
                     f"CONTEXT: Successfully refreshed and stored token for {provider_name} for user {persistent_user_id}"
                 )
@@ -475,7 +476,6 @@ class PlexusContext(FastMCPContext):
         Raises PlexusExternalAuthRequiredError if user authorization is required.
         """
         from mcp_plexus.main import (
-            user_external_token_store_instance,
             plexus_session_manager_instance,
         )
 
@@ -503,26 +503,23 @@ class PlexusContext(FastMCPContext):
                 "PlexusContext: Starlette request context unavailable in get_authenticated_external_client."
             )
 
-        # Try to find existing token in persistent store first, then session data
+        # Try to find existing token in tenant-level store first, then session data
         token_info: Optional[Dict[str, Any]] = None
         token_source: Optional[str] = None
 
-        if current_persistent_user_id and user_external_token_store_instance:
-            logger.info(
-                f"CONTEXT: Checking persistent store for {provider_name} token - user {current_persistent_user_id}, entity {current_entity_id}"
-            )
-            token_info = (
-                await user_external_token_store_instance.load_user_external_token(
-                    entity_id=current_entity_id,
-                    user_id=current_persistent_user_id,
-                    provider_name=provider_name,
-                )
-            )
-            if token_info:
-                token_source = "persistent_user_store"
-                logger.info(
-                    f"CONTEXT: Token for {provider_name} found in persistent store."
-                )
+        from mcp_plexus.oauth.storage import get_tenant_external_token_store
+
+        tenant_token_store = await get_tenant_external_token_store()
+        logger.info(
+            f"CONTEXT: Checking tenant-level store for {provider_name} token - entity {current_entity_id}"
+        )
+        token_info = await tenant_token_store.load_tenant_external_token(
+            entity_id=current_entity_id,
+            provider_name=provider_name,
+        )
+        if token_info:
+            token_source = "tenant_store"
+            logger.info(f"CONTEXT: Token for {provider_name} found in tenant store.")
 
         if not token_info:
             if session_data_from_manager.oauth_tokens is None:
@@ -594,14 +591,14 @@ class PlexusContext(FastMCPContext):
 
             # Use token if valid and has required scopes
             if not is_expired and scopes_ok:
-                # Sync token from persistent store to session if needed
-                if token_source == "persistent_user_store" and (
+                # Sync token from tenant store to session if needed
+                if token_source == "tenant_store" and (
                     session_data_from_manager.oauth_tokens is None
                     or session_data_from_manager.oauth_tokens.get(provider_name)
                     != token_info
                 ):
                     logger.info(
-                        f"CONTEXT: Syncing {provider_name} token from persistent store to session."
+                        f"CONTEXT: Syncing {provider_name} token from tenant store to session."
                     )
                     if session_data_from_manager.oauth_tokens is None:
                         session_data_from_manager.oauth_tokens = {}

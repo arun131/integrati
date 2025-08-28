@@ -21,10 +21,10 @@ from starlette.types import Receive, Scope, Send
 from .mcp_handlers.tenant_mcp_app import shared_fastmcp_server_instance
 from .oauth.endpoints import oauth_router as plexus_internal_oauth_router
 from .oauth.storage import (
-    get_auth_code_store as get_internal_auth_code_store,
+    get_internal_auth_code_store,
     get_external_oauth_provider_config_store,
     get_internal_oauth_client_store,
-    get_oauth_token_store as get_internal_oauth_token_store,
+    get_internal_oauth_token_store,
     get_tenant_external_token_store,
 )
 from .oauth.storage_interfaces import (
@@ -33,9 +33,7 @@ from .oauth.storage_interfaces import (
     AbstractOAuthClientStore,
     AbstractOAuthTokenStore,
     AbstractTenantExternalTokenStore,
-    AbstractUserExternalTokenStore,
 )
-from .oauth.user_token_store import get_user_external_token_store
 from .oauth_providers_admin.endpoints import external_oauth_providers_admin_router
 from .plexus_auth.endpoints import plexus_auth_router
 from .plexus_auth.sqlite_user_auth_token_store import (
@@ -106,7 +104,7 @@ internal_auth_code_store_instance: Optional[AbstractAuthCodeStore] = None
 external_oauth_provider_config_store_instance: Optional[
     AbstractExternalOAuthProviderConfigStore
 ] = None
-user_external_token_store_instance: Optional[AbstractUserExternalTokenStore] = None
+
 internal_oauth_client_store_instance: Optional[AbstractOAuthClientStore] = None
 plexus_tenant_store_instance: Optional[AbstractTenantStore] = None
 # NEW: Global instances for new tenant-level components
@@ -213,14 +211,12 @@ async def plexns_app_lifespan(app_instance: FastAPI):
     external_oauth_provider_config_store_instance = (
         await get_external_oauth_provider_config_store()
     )
-    user_external_token_store_instance = await get_user_external_token_store()
     internal_oauth_client_store_instance = await get_internal_oauth_client_store()
     initialized_stores.extend(
         [
             internal_oauth_token_store_instance,
             internal_auth_code_store_instance,
             external_oauth_provider_config_store_instance,
-            user_external_token_store_instance,
             internal_oauth_client_store_instance,
         ]
     )
