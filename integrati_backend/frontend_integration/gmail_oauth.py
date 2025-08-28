@@ -6,7 +6,7 @@ from typing import Dict, Any
 from fastapi import APIRouter, HTTPException, Request, Depends
 from fastapi.responses import RedirectResponse
 from google_auth_oauthlib.flow import Flow
-import requests
+import httpx
 
 from mcp_plexus.plexus_auth.dependencies import get_current_plexus_user_from_token
 from mcp_plexus.oauth.storage import get_tenant_external_token_store
@@ -204,7 +204,8 @@ async def gmail_callback(request: Request):
             "redirect_uri": redirect_uri,
         }
 
-        response = requests.post(token_url, data=token_data)
+        async with httpx.AsyncClient() as client:
+            response = await client.post(token_url, data=token_data)
 
         if response.status_code != 200:
             logger.error(f"Token exchange failed: {response.text}")

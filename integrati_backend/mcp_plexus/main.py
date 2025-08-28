@@ -17,7 +17,7 @@ from starlette.responses import JSONResponse, Response as StarletteResponse
 from starlette.routing import Route, Router as StarletteRouter
 from starlette.types import Receive, Scope, Send
 
-from .gmail_oauth.endpoints import gmail_oauth_router
+# Legacy Gmail OAuth router removed - using frontend_integration version instead
 from .mcp_handlers.tenant_mcp_app import shared_fastmcp_server_instance
 from .oauth.endpoints import oauth_router as plexus_internal_oauth_router
 from .oauth.storage import (
