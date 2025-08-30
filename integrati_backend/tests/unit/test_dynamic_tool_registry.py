@@ -38,10 +38,10 @@ class TestDynamicToolRegistry:
         gmail_tools = registry.integration_tools["gmail"]
         calendar_tools = registry.integration_tools["calendar"]
 
-        assert "search_gmail_messages" in gmail_tools
+        assert "search_emails" in gmail_tools
         assert "send_gmail_message" in gmail_tools
-        assert "get_calendar_events" in calendar_tools
-        assert "create_calendar_event" in calendar_tools
+        assert "get_events" in calendar_tools
+        assert "create_event" in calendar_tools
 
     def test_common_tools_list(self, registry):
         """Test that common tools are properly defined."""
@@ -151,7 +151,7 @@ class TestDynamicToolRegistry:
         # Should include common tools + gmail tools
         expected_tools = registry.common_tools + registry.integration_tools["gmail"]
         assert result == expected_tools
-        assert "search_gmail_messages" in result
+        assert "search_emails" in result
         assert "send_gmail_message" in result
 
     def test_get_available_tools_with_calendar(self, registry):
@@ -164,8 +164,8 @@ class TestDynamicToolRegistry:
         # Should include common tools + calendar tools
         expected_tools = registry.common_tools + registry.integration_tools["calendar"]
         assert result == expected_tools
-        assert "get_calendar_events" in result
-        assert "create_calendar_event" in result
+        assert "get_events" in result
+        assert "create_event" in result
 
     def test_get_available_tools_with_multiple_integrations(self, registry):
         """Test getting available tools when multiple integrations are connected."""
@@ -181,8 +181,8 @@ class TestDynamicToolRegistry:
             + registry.integration_tools["calendar"]
         )
         assert result == expected_tools
-        assert "search_gmail_messages" in result
-        assert "get_calendar_events" in result
+        assert "search_emails" in result
+        assert "get_events" in result
 
     def test_get_available_tools_unknown_integration(self, registry):
         """Test getting available tools with unknown integration."""
@@ -259,13 +259,11 @@ class TestDynamicToolRegistry:
         tenant_key = "tenant_123:user_456"
         registry.registered_tools[tenant_key] = {
             "integrations": ["gmail"],
-            "tools": ["search_gmail_messages", "add_numbers"],
+            "tools": ["search_emails", "add_numbers"],
         }
 
         assert (
-            registry.is_tool_available(
-                "tenant_123", "user_456", "search_gmail_messages"
-            )
+            registry.is_tool_available("tenant_123", "user_456", "search_emails")
             is True
         )
         assert (
@@ -278,7 +276,7 @@ class TestDynamicToolRegistry:
         tenant_key = "tenant_123:user_456"
         registry.registered_tools[tenant_key] = {
             "integrations": ["gmail"],
-            "tools": ["search_gmail_messages"],
+            "tools": ["search_emails"],
         }
 
         assert (

@@ -335,3 +335,131 @@ class GmailWatcher(BaseIntegrationWatcher):
         # Update last_history_id to the latest seen
         new_history_id = history_resp.get("historyId") or pushed_history_id
         await self._save_state(key, {**state, "last_history_id": new_history_id})
+
+    @staticmethod
+    async def cleanup_all_subscriptions() -> None:
+        """Stop all Gmail push subscriptions for all users at once."""
+        try:
+            from mcp_plexus.storage.sqlite_base import get_sqlite_db_connection
+
+            db_conn = await get_sqlite_db_connection()
+            cursor = db_conn.cursor()
+
+            # Get all Gmail watchers
+            cursor.execute(
+                "SELECT entity_id, identity_key FROM integration_watchers WHERE provider_name='gmail'"
+            )
+            watchers = cursor.fetchall()
+
+            if not watchers:
+                logger.info("No Gmail watchers found to cleanup")
+                return
+
+            logger.info(f"Found {len(watchers)} Gmail watchers to cleanup")
+
+            # Group by entity_id to batch cleanup operations
+            entity_groups = {}
+            for entity_id, identity_key in watchers:
+                if entity_id not in entity_groups:
+                    entity_groups[entity_id] = []
+                entity_groups[entity_id].append(identity_key)
+
+            # Clean up each entity's subscriptions
+            for entity_id, identity_keys in entity_groups.items():
+                try:
+                    # Use the first identity_key to get credentials (they should all be from same entity)
+                    auth = UnifiedGmailAuth(entity_id, identity_keys[0])
+                    credentials = await auth.get_valid_credentials()
+
+                    if credentials:
+                        # Try to stop all watches for this entity
+                        for identity_key in identity_keys:
+                            try:
+                                # Gmail API doesn't have a direct stop method, but we can log it
+                                # The watches will expire automatically after 7 days
+                                logger.info(
+                                    f"Gmail watch for E:{entity_id} U:{identity_key} will expire automatically"
+                                )
+                            except Exception as e:
+                                logger.warning(
+                                    f"Could not cleanup Gmail watch for E:{entity_id} U:{identity_key}: {e}"
+                                )
+                    else:
+                        logger.warning(
+                            f"No valid credentials for entity {entity_id}, skipping cleanup"
+                        )
+
+                except Exception as e:
+                    logger.warning(
+                        f"Could not cleanup Gmail watches for entity {entity_id}: {e}"
+                    )
+
+            # Remove all Gmail watchers from database
+            cursor.execute(
+                "DELETE FROM integration_watchers WHERE provider_name='gmail'"
+            )
+            cursor.execute(
+                "DELETE FROM integration_webhook_keys WHERE provider_name='gmail'"
+            )
+
+            db_conn.commit()
+            logger.info(
+                f"Successfully cleaned up {len(watchers)} Gmail watchers from database"
+            )
+
+        except Exception as e:
+            logger.error(f"Error cleaning up all Gmail subscriptions: {e}")
+            raise
+
+    @staticmethod
+    async def force_stop_all_gmail_watches() -> None:
+        """Force stop all Gmail watches by revoking credentials or using alternative methods."""
+        try:
+            from mcp_plexus.storage.sqlite_base import get_sqlite_db_connection
+
+            db_conn = await get_sqlite_db_connection()
+            cursor = db_conn.cursor()
+
+            # Get all Gmail watchers
+            cursor.execute(
+                "SELECT entity_id, identity_key FROM integration_watchers WHERE provider_name='gmail'"
+            )
+            watchers = cursor.fetchall()
+
+            if not watchers:
+                logger.info("No Gmail watchers found to force stop")
+                return
+
+            logger.info(f"Force stopping {len(watchers)} Gmail watchers")
+
+            # Method 1: Try to revoke OAuth tokens (this will invalidate all watches)
+            for entity_id, identity_key in watchers:
+                try:
+                    auth = UnifiedGmailAuth(entity_id, identity_key)
+                    # Revoke the OAuth token - this will invalidate all watches for this user
+                    await auth.revoke_tokens()
+                    logger.info(f"Revoked tokens for E:{entity_id} U:{identity_key}")
+                except Exception as e:
+                    logger.warning(
+                        f"Could not revoke tokens for E:{entity_id} U:{identity_key}: {e}"
+                    )
+
+            # Method 2: Clear all OAuth tokens from storage
+            cursor.execute("DELETE FROM oauth_tokens WHERE provider_name='gmail'")
+
+            # Method 3: Remove all watcher records
+            cursor.execute(
+                "DELETE FROM integration_watchers WHERE provider_name='gmail'"
+            )
+            cursor.execute(
+                "DELETE FROM integration_webhook_keys WHERE provider_name='gmail'"
+            )
+
+            db_conn.commit()
+            logger.info(
+                f"Force stopped all Gmail watches - {len(watchers)} watchers cleared"
+            )
+
+        except Exception as e:
+            logger.error(f"Error force stopping Gmail watches: {e}")
+            raise

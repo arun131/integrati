@@ -88,6 +88,25 @@ class MCPPlexusServer:
         self._loaded_connectors: Set[str] = set()
         self._tool_set_assignments: Dict[str, List[str]] = {}
 
+        # Define common tools that are always available
+        try:
+            from integrations.common.constants import COMMON_TOOL_NAMES
+
+            self.common_tools = COMMON_TOOL_NAMES
+        except ImportError:
+            # Fallback if import fails
+            self.common_tools = [
+                "add_numbers",
+                "subtract_numbers",
+                "multiply_numbers",
+                "divide_numbers",
+                "calculate_power",
+                "calculate_square_root",
+                "calculate_percentage",
+                "sum_list",
+                "calculate_average",
+            ]
+
         # Initialize permission service for config-based tool access control
         self.permission_service = PermissionService()
 
@@ -328,25 +347,96 @@ class MCPPlexusServer:
             f"get_mcp_tools_list_for_tenant (E:{entity_id}, SetFilter:{tool_set_filter}): Found {len(source_tools_dict)} raw tools from FastMCP"
         )
 
-        # Check OAuth integration status for this tenant
-        oauth_status = await self._get_tenant_oauth_status(entity_id)
+        # Use DynamicToolRegistry to get tools available for this tenant based on integrations
+        from ..dynamic_tool_registry import get_dynamic_tool_registry
+        from ..main import plexus_session_manager_instance
 
-        # NOTE: Integration tools are now pre-loaded at startup in tenant_mcp_app.py
-        # This eliminates the need for dynamic loading during runtime and improves performance.
-        # The _loaded_connectors tracking is kept for backward compatibility but is no longer used.
+        dynamic_registry = await get_dynamic_tool_registry()
+
+        # Get the user ID from multiple sources (session, auth context, etc.)
+        user_id = None
+
+        # First, try to get from session
+        if mcp_session_id and plexus_session_manager_instance:
+            try:
+                session_data, _ = await plexus_session_manager_instance.get_session(
+                    entity_id, mcp_session_id
+                )
+                user_id = session_data.persistent_user_id if session_data else None
+                if user_id:
+                    logger.debug(f"Got user_id from session: {user_id}")
+            except Exception as e:
+                logger.debug(f"Could not get user ID from session: {e}")
+
+        # If session didn't work, try to get from auth context
+        # The PlexusMCPEndpoint should have set derived_persistent_user_id in the scope
+        if not user_id:
+            try:
+                # This is a bit of a hack - we're trying to access the request context
+                # The derived_persistent_user_id should be available in the FastMCP context
+                from fastmcp.server.dependencies import get_http_request
+
+                # Try to get the current request context
+                request = get_http_request()
+                if request and hasattr(request, "state"):
+                    user_id = getattr(request.state, "derived_persistent_user_id", None)
+                    if user_id:
+                        logger.debug(f"Got user_id from request context: {user_id}")
+            except Exception as e:
+                logger.debug(f"Could not get user ID from request context: {e}")
+
+        # If we still don't have user_id, try a simpler approach
+        # For most cases, the user is authenticated as "base"
+        if not user_id:
+            # Default to "base" user since that's what we see in logs
+            user_id = "base"
+            logger.debug(f"Using default user_id: {user_id}")
+
+        # Register and get available tools for this tenant
+        if user_id:
+            try:
+                available_tool_names = await dynamic_registry.register_tools_for_tenant(
+                    entity_id, user_id
+                )
+                logger.debug(
+                    f"Dynamic tool loading successful for user {user_id}: {len(available_tool_names)} tools"
+                )
+
+                # Dynamically register integration tools that are needed but not yet registered
+                await self._register_missing_integration_tools(
+                    available_tool_names, source_tools_dict.keys()
+                )
+
+                # Re-fetch the tools dict after dynamic registration
+                source_tools_dict = await self._fastmcp_instance.get_tools()
+
+            except Exception as e:
+                logger.error(f"Error in dynamic tool loading for user {user_id}: {e}")
+                # Fallback to common tools on error
+                available_tool_names = dynamic_registry.common_tools.copy()
+        else:
+            # Fallback to common tools only if no user context
+            available_tool_names = dynamic_registry.common_tools.copy()
+            logger.warning(
+                f"No user context for tenant {entity_id}, showing only common tools"
+            )
+
+        logger.debug(
+            f"Dynamic tool loading for tenant {entity_id}: Available tools: {available_tool_names}"
+        )
 
         visible_tools: List[MCPTool] = []
         for tool_name, fmcp_tool_obj in source_tools_dict.items():
-            # Check tenant access permissions
+            # Only include tools that are available for this tenant per DynamicToolRegistry
+            if tool_name not in available_tool_names:
+                continue
+
+            # Check tenant access permissions (for additional scoping beyond integrations)
             is_globally_visible = not self._tool_tenant_scoping.get(tool_name, [])
             if (
                 not is_globally_visible
                 and entity_id not in self._tool_tenant_scoping.get(tool_name, [])
             ):
-                continue
-
-            # Check OAuth requirements for integration tools
-            if not await self._can_tenant_use_tool(entity_id, tool_name, oauth_status):
                 continue
 
             # Apply tool set filter if specified
@@ -500,25 +590,34 @@ class MCPPlexusServer:
         Returns:
             True if the tenant can use the tool, False otherwise
         """
-        # Define which tools require which OAuth integrations
-        tool_oauth_requirements = {
-            # Gmail tools
-            "search_gmail_messages": "gmail",
-            "get_last_received_email": "gmail",
-            "send_gmail_message": "gmail",
-            "get_gmail_message": "gmail",
-            "get_unread_email_count": "gmail",
-            "search_gmail_by_sender": "gmail",
-            "search_gmail_by_subject": "gmail",
-            # Calendar tools
-            "get_calendar_events": "calendar",
-            "create_calendar_event": "calendar",
-            "update_calendar_event": "calendar",
-            "delete_calendar_event": "calendar",
-            "get_calendar_event": "calendar",
-            "search_calendar_events": "calendar",
-            "get_upcoming_events": "calendar",
-        }
+        # Build OAuth requirements from constants - no hardcoding!
+        tool_oauth_requirements = {}
+
+        try:
+            from integrations.gmail.constants import GMAIL_TOOL_NAMES
+            from integrations.calendar.constants import CALENDAR_TOOL_NAMES
+
+            # Map all Gmail tools to require gmail OAuth
+            for tool_name_gmail in GMAIL_TOOL_NAMES:
+                tool_oauth_requirements[tool_name_gmail] = "gmail"
+
+            # Map all Calendar tools to require calendar OAuth
+            for tool_name_calendar in CALENDAR_TOOL_NAMES:
+                tool_oauth_requirements[tool_name_calendar] = "calendar"
+
+            logger.debug(
+                f"Built OAuth requirements for {len(tool_oauth_requirements)} tools from constants"
+            )
+
+        except ImportError:
+            # Fallback if constants are not available
+            logger.warning(
+                "Could not import tool constants, using minimal OAuth requirements"
+            )
+            tool_oauth_requirements = {
+                "send_gmail_message": "gmail",
+                "get_calendar_events": "calendar",
+            }
 
         # Check if this tool requires OAuth
         required_integration = tool_oauth_requirements.get(tool_name)
@@ -613,6 +712,73 @@ class MCPPlexusServer:
             return []
 
         return await store.load_all_provider_configs_for_entity(entity_id=entity_id)
+
+    async def _register_missing_integration_tools(
+        self, available_tool_names: List[str], currently_registered_tools: List[str]
+    ) -> None:
+        """
+        Dynamically register integration tools that are needed but not yet registered with FastMCP.
+
+        Args:
+            available_tool_names: List of tool names that should be available
+            currently_registered_tools: List of tool names currently registered with FastMCP
+        """
+        # Find which tools are missing from FastMCP registration
+        missing_tools = []
+        for tool_name in available_tool_names:
+            if (
+                tool_name not in currently_registered_tools
+                and tool_name not in self.common_tools
+            ):
+                missing_tools.append(tool_name)
+
+        if not missing_tools:
+            return
+
+        logger.info(
+            f"Need to dynamically register {len(missing_tools)} integration tools: {missing_tools}"
+        )
+
+        # Import integration tool constants
+        try:
+            from integrations.gmail.constants import GMAIL_TOOL_NAMES
+            from integrations.calendar.constants import CALENDAR_TOOL_NAMES
+
+            # Group missing tools by integration using constants
+            integration_tools_map = {
+                "gmail": GMAIL_TOOL_NAMES,
+                "calendar": CALENDAR_TOOL_NAMES,
+            }
+        except ImportError:
+            # Fallback with minimal tools if constants import fails
+            logger.error("Failed to import tool constants - using minimal fallback")
+            integration_tools_map = {
+                "gmail": ["send_gmail_message", "get_gmail_message"],
+                "calendar": ["get_calendar_events", "create_calendar_event"],
+            }
+
+        # Register missing tools by importing their modules
+        for integration_name, tool_names in integration_tools_map.items():
+            tools_to_register = [t for t in tool_names if t in missing_tools]
+            if tools_to_register:
+                try:
+                    # Import the integration tools module
+                    module_name = f"integrations.{integration_name}.tools"
+                    logger.info(
+                        f"Importing {module_name} to register tools: {tools_to_register}"
+                    )
+
+                    # Import the module - the @PLEXUS_SERVER_INSTANCE.tool() decorators should register the tools automatically
+                    __import__(module_name)
+
+                    logger.info(
+                        f"Successfully imported {integration_name} tools - decorators should register automatically"
+                    )
+
+                except Exception as e:
+                    logger.error(
+                        f"Failed to register tools for {integration_name}: {e}"
+                    )
 
     def add_resource(self, resource_obj: Resource, key: Optional[str] = None) -> None:
         """

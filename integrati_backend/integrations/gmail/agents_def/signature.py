@@ -25,8 +25,10 @@ class GmailBackgroundAgentSignature(dspy.Signature):
 
     You are triggered automatically when the user gets a new email. You are supposed to read throught the details of the email and decide if you need to take some actions and give an update to the user.
 
-    Remember the user is away and busy with other things. So you should be concise and to the point and give a quick personalized notification.
+    Remember the user could be away and busy with other things. So you should be concise and to the point and give a quick personalized notification.
     The user will read the notification when they come back to the app.
+
+    You have access to many tools so use different tools to fulfill the request and dont get stuck on a single tool.
 
     If you are unable to take any action, you should just give a quick personalized notification and include a to-do for the user.
     """
