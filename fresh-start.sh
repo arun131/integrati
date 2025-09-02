@@ -92,6 +92,16 @@ sudo mkdir -p integrati_backend/data
 # Fix ownership back to current user
 sudo chown $(whoami):$(id -gn) integrati_backend/data
 
+# NEW: Clean up Gmail push subscriptions AFTER database recreation
+echo "📧 Cleaning up Gmail push subscriptions..."
+if [ -f "integrati_backend/integrations/gmail/cleanup_all_gmail.py" ]; then
+    cd integrati_backend
+    python3 integrations/gmail/cleanup_all_gmail.py
+    cd ..
+else
+    echo "⚠️  Gmail cleanup script not found - subscriptions may remain active on Google's servers"
+fi
+
 echo ""
 echo "✨ COMPLETE cleanup finished!"
 echo ""

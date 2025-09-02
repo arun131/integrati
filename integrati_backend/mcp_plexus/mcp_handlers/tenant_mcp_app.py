@@ -83,21 +83,10 @@ try:
 except Exception as e:
     logger.error(f"Failed to register common tools: {e}")
 
-# Pre-load ALL integration tools at startup to avoid runtime registration
-logger.info("Pre-loading all integration tools at startup")
-integration_modules = {
-    "gmail": "integrations.gmail.tools",
-    "calendar": "integrations.calendar.tools",
-}
-
-for integration_name, module_path in integration_modules.items():
-    try:
-        import importlib
-
-        importlib.import_module(module_path)
-        logger.info(f"Pre-loaded {integration_name} tools from {module_path}")
-    except Exception as e:
-        logger.error(f"Failed to pre-load {integration_name} tools: {e}")
+# Dynamic tool loading will be handled per user session
+# Integration tools are no longer pre-loaded at startup
+# They will be loaded dynamically based on user integrations via DynamicToolRegistry
+logger.info("Dynamic tool loading enabled - tools will be loaded per user session")
 
 # Log registered tools for verification
 if shared_fastmcp_server_instance and hasattr(
@@ -106,14 +95,28 @@ if shared_fastmcp_server_instance and hasattr(
     tool_manager = shared_fastmcp_server_instance._tool_manager
     if tool_manager and hasattr(tool_manager, "get_tools"):
         try:
-            # Handle both sync and async tool managers
-            if hasattr(tool_manager.get_tools, "__await__"):
-                # Async tool manager - we'll skip logging for now
-                logger.info("Tool manager is async - tools loaded successfully")
+            # Handle async tool managers properly
+            if hasattr(tool_manager.get_tools, "__call__"):
+                # Check if it's async by inspecting the method
+                import inspect
+
+                if inspect.iscoroutinefunction(tool_manager.get_tools):
+                    # Async method - just log that it's working without trying to call it
+                    logger.info(
+                        "Async tool manager detected - tools loaded successfully"
+                    )
+                else:
+                    # Sync method - safe to call
+                    try:
+                        tools_result = tool_manager.get_tools()
+                        tool_names = list(tools_result.keys())
+                        logger.info(
+                            f"Tools registered on shared instance: {tool_names}"
+                        )
+                    except Exception:
+                        logger.info("Tools loaded successfully (sync call failed)")
             else:
-                # Sync tool manager
-                tool_names = list(tool_manager.get_tools().keys())
-                logger.info(f"Tools registered on shared instance: {tool_names}")
+                logger.info("Tool manager structure - tools loaded successfully")
         except Exception as e:
             logger.warning(f"Could not get tool names: {e}")
     else:

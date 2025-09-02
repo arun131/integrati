@@ -222,7 +222,11 @@ class UnifiedGmailAuth:
         """Get valid Google credentials for API calls with robust token refresh."""
         stored_tokens = await self.get_stored_tokens()
         if not stored_tokens:
-            raise PlexusExternalAuthRequiredError("No stored Gmail tokens found")
+            raise PlexusExternalAuthRequiredError(
+                authorization_url="https://accounts.google.com/o/oauth2/auth",
+                provider_name="gmail",
+                detail_message="No stored Gmail tokens found",
+            )
 
         # Check if we have required tokens
         access_token = stored_tokens.get("access_token")
@@ -230,12 +234,16 @@ class UnifiedGmailAuth:
 
         if not access_token:
             raise PlexusExternalAuthRequiredError(
-                "No access token found in stored Gmail tokens"
+                authorization_url="https://accounts.google.com/o/oauth2/auth",
+                provider_name="gmail",
+                detail_message="No access token found in stored Gmail tokens",
             )
 
         if not refresh_token:
             raise PlexusExternalAuthRequiredError(
-                "No refresh token found in stored Gmail tokens - cannot refresh"
+                authorization_url="https://accounts.google.com/o/oauth2/auth",
+                provider_name="gmail",
+                detail_message="No refresh token found in stored Gmail tokens - cannot refresh",
             )
 
         # Create credentials object
@@ -311,11 +319,15 @@ class UnifiedGmailAuth:
                             f"Refresh token is invalid for {self.entity_id}:{self.user_id} - user must re-authenticate"
                         )
                         raise PlexusExternalAuthRequiredError(
-                            "Gmail refresh token is invalid - please re-authenticate your Gmail integration"
+                            authorization_url="https://accounts.google.com/o/oauth2/auth",
+                            provider_name="gmail",
+                            detail_message="Gmail refresh token is invalid - please re-authenticate your Gmail integration",
                         )
                     else:
                         raise PlexusExternalAuthRequiredError(
-                            f"Failed to refresh Gmail credentials: {manual_refresh_error}"
+                            authorization_url="https://accounts.google.com/o/oauth2/auth",
+                            provider_name="gmail",
+                            detail_message=f"Failed to refresh Gmail credentials: {manual_refresh_error}",
                         )
 
         return credentials

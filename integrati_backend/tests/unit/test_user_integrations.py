@@ -85,12 +85,12 @@ async def test_tool_aggregation_empty(tmp_db_path):
 
     # Register the tools with the FastMCP instance
     @fastmcp_instance.tool()
-    async def add_numbers(a: float, b: float) -> float:
-        return await CommonTools.add_numbers(a, b)
-
-    @fastmcp_instance.tool()
-    async def sum_list(numbers: list) -> float:
-        return await CommonTools.sum_list(numbers)
+    async def web_search(
+        query: str, num_results: int = 10, location: str = None
+    ) -> dict:
+        return await CommonTools.web_search(
+            fastmcp_instance.get_context(), query, num_results, location
+        )
 
     server = MCPPlexusServer()
     server._fastmcp_instance = fastmcp_instance
@@ -98,8 +98,8 @@ async def test_tool_aggregation_empty(tmp_db_path):
     tools = await server.get_mcp_tools_list_for_tenant("tenant_abc")
     connector_tool_names = [t.name for t in tools]
 
-    # Expect core math tools at least, connector tools absent
-    assert "add_numbers" in connector_tool_names  # core tool
+    # Expect core search tools at least, connector tools absent
+    assert "web_search" in connector_tool_names  # core tool
     assert "get_unread_email_count" not in connector_tool_names
 
 
@@ -118,8 +118,12 @@ async def test_tool_aggregation_after_integration(tmp_db_path):
 
         # Register the tools with the FastMCP instance
         @fastmcp_instance.tool()
-        async def add_numbers(a: float, b: float) -> float:
-            return await CommonTools.add_numbers(a, b)
+        async def web_search(
+            query: str, num_results: int = 10, location: str = None
+        ) -> dict:
+            return await CommonTools.web_search(
+                fastmcp_instance.get_context(), query, num_results, location
+            )
 
         # Mock Gmail tools for testing
         @fastmcp_instance.tool()

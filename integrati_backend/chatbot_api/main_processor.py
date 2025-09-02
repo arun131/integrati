@@ -22,36 +22,15 @@ _dspy_configured = False
 # Tool name constants for categorization
 # Import actual tool names from constants and add categorization keywords
 try:
-    from integrations.gmail.constants import GMAIL_TOOL_NAMES as GMAIL_ACTUAL_TOOLS
-    from integrations.calendar.constants import (
-        CALENDAR_TOOL_NAMES as CALENDAR_ACTUAL_TOOLS,
-    )
+    from integrations.gmail.constants import GMAIL_TOOL_NAMES
+    from integrations.calendar.constants import CALENDAR_TOOL_NAMES
+    from integrations.common.constants import COMMON_TOOL_NAMES
 except ImportError:
+    raise ImportError("Failed to import tool constants")
     # Fallback in case of import issues during testing
-    GMAIL_ACTUAL_TOOLS = []
-    CALENDAR_ACTUAL_TOOLS = []
-
-# Combine actual tool names with categorization keywords
-GMAIL_TOOL_NAMES = [
-    "gmail",
-    "email",
-    "mail",
-] + GMAIL_ACTUAL_TOOLS
-
-CALENDAR_TOOL_NAMES = [
-    "calendar",
-    "event",
-    "schedule",
-] + CALENDAR_ACTUAL_TOOLS
-COMMON_TOOL_NAMES = [
-    "add",
-    "subtract",
-    "multiply",
-    "divide",
-    "calculate",
-    "add_numbers",
-    "sum_list",
-]
+    GMAIL_TOOL_NAMES = []
+    CALENDAR_TOOL_NAMES = []
+    COMMON_TOOL_NAMES = []
 
 
 def configure_dspy_once():

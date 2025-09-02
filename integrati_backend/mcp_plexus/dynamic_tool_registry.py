@@ -14,37 +14,31 @@ class DynamicToolRegistry:
     def __init__(self):
         """Initialize the dynamic tool registry."""
         self.registered_tools = {}
-        self.integration_tools = {
-            "gmail": [
-                "search_gmail_messages",
-                "get_last_received_email",
-                "send_gmail_message",
-                "get_gmail_message",
-                "get_unread_email_count",
-                "search_gmail_by_sender",
-                "search_gmail_by_subject",
-            ],
-            "calendar": [
-                "get_calendar_events",
-                "create_calendar_event",
-                "update_calendar_event",
-                "delete_calendar_event",
-                "get_calendar_event",
-                "search_calendar_events",
-                "get_upcoming_events",
-            ],
-        }
-        self.common_tools = [
-            "add_numbers",
-            "subtract_numbers",
-            "multiply_numbers",
-            "divide_numbers",
-            "calculate_power",
-            "calculate_square_root",
-            "calculate_percentage",
-            "sum_list",
-            "calculate_average",
-        ]
+
+        # Import tool names from constants - no more hardcoding!
+        try:
+            from integrations.gmail.constants import GMAIL_TOOL_NAMES
+            from integrations.calendar.constants import CALENDAR_TOOL_NAMES
+            from integrations.common.constants import COMMON_TOOL_NAMES
+
+            self.integration_tools = {
+                "gmail": GMAIL_TOOL_NAMES,
+                "calendar": CALENDAR_TOOL_NAMES,
+            }
+            self.common_tools = COMMON_TOOL_NAMES
+
+            logger.info(
+                f"Loaded {len(GMAIL_TOOL_NAMES)} Gmail tools, {len(CALENDAR_TOOL_NAMES)} Calendar tools, {len(COMMON_TOOL_NAMES)} common tools from constants"
+            )
+
+        except ImportError as e:
+            logger.error(f"Failed to import tool constants: {e}")
+            # Fallback to minimal hardcoded list only if constants fail
+            self.integration_tools = {
+                "gmail": ["send_gmail_message", "get_gmail_message"],
+                "calendar": ["get_calendar_events", "create_calendar_event"],
+            }
+            self.common_tools = ["web_search", "local_search"]
 
     async def get_tenant_integrations(self, entity_id: str, user_id: str) -> List[str]:
         """Get list of connected integrations for a tenant."""

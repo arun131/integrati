@@ -6,23 +6,36 @@ logger = logging.getLogger(__name__)
 
 # Tool names for smart categorization
 CALENDAR_TOOL_NAMES = [
-    "get_calendar_events",
-    "create_calendar_event",
-    "update_calendar_event",
-    "delete_calendar_event",
-    "get_calendar_event",
-    "search_calendar_events",
-    "get_upcoming_events",
+    # Unified event management tools
+    "get_events",  # Merged get_calendar_events, search_calendar_events, get_upcoming_events, get_calendar_event
+    "create_event",  # Renamed from create_calendar_event
+    "update_event",  # Merged update_calendar_event and add_attendees_to_event
+    "delete_event",  # Renamed from delete_calendar_event
+    # Calendar management tools
+    "list_calendars",
+    "create_calendar",
+    # Advanced features
+    "quick_add_event_from_text",
+    "check_attendee_status",
+    "query_free_busy",
+    "schedule_mutual",
+    "analyze_busyness",
 ]
 
 # Default permission levels for background agent config
 # 1 = NO_ACCESS, 2 = RESTRICTED_ACCESS, 3 = FULL_ACCESS
 CALENDAR_DEFAULT_BACKGROUND_PERMISSIONS = {
-    "get_calendar_events": 3,  # Full access - safe for background reading
-    "create_calendar_event": 2,  # Restricted - needs approval for creating
-    "update_calendar_event": 2,  # Restricted - needs approval for updating
-    "delete_calendar_event": 2,  # Restricted - needs approval for deleting
-    "get_calendar_event": 3,  # Full access - safe for background reading
-    "search_calendar_events": 3,  # Restricted - needs approval for searching
-    "get_upcoming_events": 3,  # Full access - safe for background reading
+    # READ operations - Full access (safe for background use)
+    "get_events": 3,  # Full access - safe for background reading (merged multiple functions)
+    "list_calendars": 3,  # Full access - safe for background reading
+    "check_attendee_status": 3,  # Full access - safe for background reading
+    "query_free_busy": 3,  # Full access - safe for background reading
+    "analyze_busyness": 3,  # Full access - safe for background reading
+    "create_calendar": 3,  # Full access - safe for background reading
+    # WRITE/CREATE/MODIFY operations - Restricted access (requires approval)
+    "create_event": 2,  # Restricted - needs approval for creating events
+    "update_event": 2,  # Restricted - needs approval for updating events
+    "delete_event": 2,  # Restricted - needs approval for deleting events
+    "quick_add_event_from_text": 2,  # Restricted - needs approval for creating events
+    "schedule_mutual": 2,  # Restricted - needs approval for creating meetings
 }

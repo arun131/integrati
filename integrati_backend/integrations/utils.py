@@ -68,21 +68,28 @@ class PermissionHelper:
                     f"Approval request created for {tool_name} with ID: {approval_id}"
                 )
 
-                # Note: Approval request is automatically available to frontend via polling
-                # No separate notification needed since approval creation is sufficient
+                # Note: Approval request is automatically available to frontend via websocket
 
                 # Update the restricted access response with the approval message
-                response = restricted_access_response.copy()
-                response["status_message"] = approval_message
+                if isinstance(restricted_access_response, dict):
+                    response = restricted_access_response.copy()
+                    response["status_message"] = approval_message
+                else:
+                    # For non-dict responses (like lists), return as-is since they can't have status_message
+                    response = restricted_access_response
                 return response
 
             except Exception as e:
                 logger.error(f"Failed to create approval request: {e}")
                 # Update the restricted access response with failure message
-                response = restricted_access_response.copy()
-                response["status_message"] = (
-                    f"Failed to create approval request for {tool_name}."
-                )
+                if isinstance(restricted_access_response, dict):
+                    response = restricted_access_response.copy()
+                    response["status_message"] = (
+                        f"Failed to create approval request for {tool_name}."
+                    )
+                else:
+                    # For non-dict responses (like lists), return as-is since they can't have status_message
+                    response = restricted_access_response
                 return response
 
         # Full access - proceed with execution
