@@ -157,9 +157,12 @@ class TestSQLiteTenantConfigStore:
         )
 
         # Mock the _row_to_config_in_db method to return our test configs
-        with patch.object(
-            store, "_row_to_config_in_db", side_effect=[mock_config1, mock_config2]
-        ), patch.object(store, "_fetchall", return_value=[MagicMock(), MagicMock()]):
+        with (
+            patch.object(
+                store, "_row_to_config_in_db", side_effect=[mock_config1, mock_config2]
+            ),
+            patch.object(store, "_fetchall", return_value=[MagicMock(), MagicMock()]),
+        ):
             result = await store.list_configs_for_tenant("tenant_123", skip=0, limit=10)
 
         assert len(result) == 2
@@ -233,9 +236,12 @@ class TestSQLiteTenantConfigStore:
             updated_at=datetime.now(timezone.utc),
         )
 
-        with patch.object(
-            store, "get_config_by_id", side_effect=[existing_config, updated_config]
-        ), patch.object(store, "_execute_query"):
+        with (
+            patch.object(
+                store, "get_config_by_id", side_effect=[existing_config, updated_config]
+            ),
+            patch.object(store, "_execute_query"),
+        ):
             result = await store.update_config(
                 "tenant_123", "config_456", sample_config_update
             )
@@ -294,11 +300,12 @@ class TestSQLiteTenantConfigStore:
             updated_at=datetime.now(timezone.utc),
         )
 
-        with patch.object(
-            store, "get_config_by_id", return_value=existing_config
-        ), patch.object(store, "_unset_default_configs") as mock_unset, patch.object(
-            store, "_execute_query"
-        ), patch.object(store, "get_config_by_id", return_value=existing_config):
+        with (
+            patch.object(store, "get_config_by_id", return_value=existing_config),
+            patch.object(store, "_unset_default_configs") as mock_unset,
+            patch.object(store, "_execute_query"),
+            patch.object(store, "get_config_by_id", return_value=existing_config),
+        ):
             result = await store.set_default_config("tenant_123", "config_456")
 
         assert result is not None

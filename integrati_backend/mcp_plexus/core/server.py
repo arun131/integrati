@@ -95,17 +95,7 @@ class MCPPlexusServer:
             self.common_tools = COMMON_TOOL_NAMES
         except ImportError:
             # Fallback if import fails
-            self.common_tools = [
-                "add_numbers",
-                "subtract_numbers",
-                "multiply_numbers",
-                "divide_numbers",
-                "calculate_power",
-                "calculate_square_root",
-                "calculate_percentage",
-                "sum_list",
-                "calculate_average",
-            ]
+            self.common_tools = ["web_search", "local_search"]
 
         # Initialize permission service for config-based tool access control
         self.permission_service = PermissionService()

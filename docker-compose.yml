@@ -47,6 +47,10 @@ services:
       - OPENAI_API_KEY=${OPENAI_API_KEY}
       - DSPY_DEFAULT_LLM_MODEL=${DSPY_DEFAULT_LLM_MODEL}
       - DSPY_OPENAI_MODEL=${DSPY_OPENAI_MODEL}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - GOOGLE_CSE_ID=${GOOGLE_CSE_ID}
+      - GOOGLE_PLACES_API_KEY=${GOOGLE_PLACES_API_KEY}
+      - GOOGLE_DIRECTIONS_API_KEY=${GOOGLE_DIRECTIONS_API_KEY}
     volumes:
       - ./integrati_backend/data:/app/data
       - ./.env:/app/.env:ro

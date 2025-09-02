@@ -38,7 +38,7 @@ class DynamicToolRegistry:
                 "gmail": ["send_gmail_message", "get_gmail_message"],
                 "calendar": ["get_calendar_events", "create_calendar_event"],
             }
-            self.common_tools = ["add_numbers", "subtract_numbers"]
+            self.common_tools = ["web_search", "local_search"]
 
     async def get_tenant_integrations(self, entity_id: str, user_id: str) -> List[str]:
         """Get list of connected integrations for a tenant."""

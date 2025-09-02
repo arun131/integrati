@@ -30,8 +30,10 @@ class TestDynamicToolRegistry:
         assert registry.registered_tools == {}
         assert "gmail" in registry.integration_tools
         assert "calendar" in registry.integration_tools
-        assert "add_numbers" in registry.common_tools
-        assert "calculate_average" in registry.common_tools
+        # Should have 2 common tools: web_search and local_search
+        assert len(registry.common_tools) == 2
+        assert "web_search" in registry.common_tools
+        assert "local_search" in registry.common_tools
 
     def test_integration_tools_structure(self, registry):
         """Test that integration tools are properly structured."""
@@ -45,17 +47,7 @@ class TestDynamicToolRegistry:
 
     def test_common_tools_list(self, registry):
         """Test that common tools are properly defined."""
-        expected_common_tools = [
-            "add_numbers",
-            "subtract_numbers",
-            "multiply_numbers",
-            "divide_numbers",
-            "calculate_power",
-            "calculate_square_root",
-            "calculate_percentage",
-            "sum_list",
-            "calculate_average",
-        ]
+        expected_common_tools = ["web_search", "local_search"]
 
         for tool in expected_common_tools:
             assert tool in registry.common_tools
@@ -138,8 +130,9 @@ class TestDynamicToolRegistry:
         )
 
         assert result == registry.common_tools
-        assert "add_numbers" in result
-        assert "calculate_average" in result
+        assert len(result) == 2
+        assert "web_search" in result
+        assert "local_search" in result
 
     def test_get_available_tools_with_gmail(self, registry):
         """Test getting available tools when Gmail is connected."""
@@ -259,15 +252,19 @@ class TestDynamicToolRegistry:
         tenant_key = "tenant_123:user_456"
         registry.registered_tools[tenant_key] = {
             "integrations": ["gmail"],
-            "tools": ["search_emails", "add_numbers"],
+            "tools": ["search_emails"] + registry.common_tools,
         }
 
         assert (
             registry.is_tool_available("tenant_123", "user_456", "search_emails")
             is True
         )
+        # Should have common tools available
         assert (
-            registry.is_tool_available("tenant_123", "user_456", "add_numbers") is True
+            registry.is_tool_available("tenant_123", "user_456", "web_search") is True
+        )
+        assert (
+            registry.is_tool_available("tenant_123", "user_456", "local_search") is True
         )
 
     def test_is_tool_available_false(self, registry):
@@ -287,8 +284,12 @@ class TestDynamicToolRegistry:
     def test_is_tool_available_not_registered(self, registry):
         """Test checking tool availability for unregistered tenant."""
         # Should fall back to common tools
+        # Should have common tools available
         assert (
-            registry.is_tool_available("tenant_123", "user_456", "add_numbers") is True
+            registry.is_tool_available("tenant_123", "user_456", "web_search") is True
+        )
+        assert (
+            registry.is_tool_available("tenant_123", "user_456", "local_search") is True
         )
         assert (
             registry.is_tool_available("tenant_123", "user_456", "unknown_tool")
